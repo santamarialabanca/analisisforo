@@ -330,9 +330,24 @@ function updateMetrics() {
     });
   });
   
-  // Update description
-  document.querySelector('#resumen .description-box p').textContent = 
-    `El XIV Foro de Innovación Educativa registró ${acreditados} acreditaciones y ${asistentes} asistentes reales (${tasaAsistencia.toFixed(1)}% de asistencia). Se recibieron ${valoraciones} valoraciones (${tasaRespuesta.toFixed(1)}% tasa de respuesta), con una valoración media de ${valoracionMedia.toFixed(2)} sobre 5.`;
+  // Update description con más contexto
+  const asistentesConTalleres = asistenciaData.filter(row => {
+    const taller1730 = row['17:30']?.trim();
+    const taller1830 = row['18:30']?.trim();
+    return (taller1730 && taller1730 !== '' && taller1730 !== 'Primera sesión') ||
+           (taller1830 && taller1830 !== '' && taller1830 !== 'Segunda sesión');
+  }).length;
+  
+  const descripcion = document.querySelector('#resumen .description-box p');
+  if (descripcion) {
+    descripcion.innerHTML = `
+      <strong>Resumen del XIV Foro de Innovación Educativa - HUMANIA:</strong><br>
+      • <strong>${acreditados} acreditaciones</strong> (personas invitadas)<br>
+      • <strong>${asistentesConTalleres} asistentes</strong> (participaron en talleres) - ${tasaAsistencia.toFixed(1)}% de tasa de asistencia<br>
+      • <strong>${valoraciones} valoraciones</strong> recibidas - ${tasaRespuesta.toFixed(1)}% de tasa de respuesta<br>
+      • <strong>Valoración media: ${valoracionMedia.toFixed(2)}/5</strong> ${valoracionMedia >= 4 ? '⭐ Excelente' : valoracionMedia >= 3.5 ? '👍 Buena' : '📊 Aceptable'}
+    `;
+  }
 }
 
 function updateCharts() {
@@ -431,9 +446,12 @@ function updateCharts() {
   });
   
   // Create charts (using simple HTML/CSS visualization for now)
+  createAcreditacionesStaffChart();
   createRoleChart(rolesAcreditados, rolesAsistentes);
   createWorkshopCharts(talleres1730, talleres1830);
+  createResumenTalleres(talleres1730, talleres1830);
   createRatingChart(ratings);
+  createResumenValoracion(ratings, valoracionCharla);
   createProfileChart(perfilesEncuestados);
   createSourceChart(comoSeEnteraron);
   createCharlaChart(valoracionCharla);
@@ -459,9 +477,41 @@ function createRoleChart(rolesAcreditados, rolesAsistentes) {
   
   const roles = [...new Set([...Object.keys(rolesAcreditados), ...Object.keys(rolesAsistentes)])];
   
-  // Crear gráfico combinado con barras y comparación visual
+  // Calcular totales para contexto
+  const totalAcreditados = Object.values(rolesAcreditados).reduce((sum, val) => sum + val, 0);
+  const totalAsistentes = Object.values(rolesAsistentes).reduce((sum, val) => sum + val, 0);
+  const tasaAsistenciaGeneral = totalAcreditados > 0 ? ((totalAsistentes / totalAcreditados) * 100).toFixed(1) : 0;
+  
+  // Crear gráfico combinado con barras y comparación visual mejorado
   let html = `
-    <div style="margin-top: 20px; padding: 24px; background: rgba(247, 245, 246, 0.8); border-radius: 12px; border: 1px solid rgba(128, 24, 54, 0.1);">
+    <div style="margin-top: 20px; padding: 28px; background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(247, 245, 246, 0.95) 100%); border-radius: 16px; border: 1px solid rgba(128, 24, 54, 0.12); box-shadow: 0 4px 16px rgba(128, 24, 54, 0.08);">
+      <div style="margin-bottom: 20px; padding-bottom: 16px; border-bottom: 2px solid rgba(128, 24, 54, 0.1);">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
+          <div>
+            <h4 style="color: #801836; font-size: 18px; font-weight: 700; margin: 0 0 8px 0; display: flex; align-items: center; gap: 8px;">
+              <i class="fas fa-users" style="font-size: 18px;"></i>
+              Distribución por Rol
+            </h4>
+            <p style="font-size: 13px; color: #666; margin: 0; line-height: 1.5;">
+              Comparación entre personas <strong>acreditadas</strong> (invitadas) y <strong>asistentes reales</strong> (que participaron en talleres) por tipo de rol.
+            </p>
+          </div>
+          <div style="display: flex; gap: 16px; flex-wrap: wrap;">
+            <div style="text-align: center; padding: 12px 16px; background: rgba(128, 24, 54, 0.05); border-radius: 8px; border: 1px solid rgba(128, 24, 54, 0.1);">
+              <div style="font-size: 11px; color: #666; margin-bottom: 4px;">Total Acreditados</div>
+              <div style="font-size: 24px; font-weight: 700; color: #801836;">${totalAcreditados}</div>
+            </div>
+            <div style="text-align: center; padding: 12px 16px; background: rgba(40, 167, 69, 0.05); border-radius: 8px; border: 1px solid rgba(40, 167, 69, 0.1);">
+              <div style="font-size: 11px; color: #666; margin-bottom: 4px;">Total Asistentes</div>
+              <div style="font-size: 24px; font-weight: 700; color: #28a745;">${totalAsistentes}</div>
+            </div>
+            <div style="text-align: center; padding: 12px 16px; background: linear-gradient(135deg, rgba(128, 24, 54, 0.1) 0%, rgba(128, 24, 54, 0.05) 100%); border-radius: 8px; border-left: 3px solid #801836;">
+              <div style="font-size: 11px; color: #666; margin-bottom: 4px;">Tasa Asistencia</div>
+              <div style="font-size: 24px; font-weight: 700; color: ${parseFloat(tasaAsistenciaGeneral) >= 80 ? '#28a745' : parseFloat(tasaAsistenciaGeneral) >= 60 ? '#ffc107' : '#dc3545'};">${tasaAsistenciaGeneral}%</div>
+            </div>
+          </div>
+        </div>
+      </div>
       <div style="display: grid; gap: 20px;">
   `;
   
@@ -469,27 +519,49 @@ function createRoleChart(rolesAcreditados, rolesAsistentes) {
     const acreditados = rolesAcreditados[rol] || 0;
     const asistentes = rolesAsistentes[rol] || 0;
     const porcentaje = acreditados > 0 ? ((asistentes / acreditados) * 100) : 0;
+    const diferencia = acreditados - asistentes;
     const maxValue = Math.max(...roles.map(r => rolesAcreditados[r] || 0), 1);
     const porcentajeAcreditados = (acreditados / maxValue) * 100;
     const porcentajeAsistentes = (asistentes / maxValue) * 100;
     const colors = ['#801836', '#9a1f42', '#b4284e', '#ce315a'];
     const color = colors[index % colors.length];
     
+    // Indicador de rendimiento
+    const rendimientoColor = parseFloat(porcentaje) >= 80 ? '#28a745' : parseFloat(porcentaje) >= 60 ? '#ffc107' : '#dc3545';
+    const rendimientoIcon = parseFloat(porcentaje) >= 80 ? 'fa-check-circle' : parseFloat(porcentaje) >= 60 ? 'fa-exclamation-circle' : 'fa-times-circle';
+    const rendimientoTexto = parseFloat(porcentaje) >= 80 ? 'Excelente' : parseFloat(porcentaje) >= 60 ? 'Buena' : 'Mejorable';
+    
     html += `
-      <div style="background: rgba(255, 255, 255, 0.6); backdrop-filter: blur(10px); border: 1px solid rgba(128, 24, 54, 0.1); padding: 20px; border-radius: 12px; border-left: 4px solid ${color}; box-shadow: 0 2px 8px rgba(128, 24, 54, 0.05);">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-          <div>
-            <strong style="color: #801836; font-size: 18px; font-weight: 700; display: block; margin-bottom: 4px;">${rol}</strong>
-            <div style="font-size: 12px; color: #666;">Tasa de asistencia: <strong style="color: ${color};">${porcentaje.toFixed(1)}%</strong></div>
-          </div>
-          <div style="display: flex; gap: 12px; align-items: center;">
-            <div style="text-align: center; padding: 8px 12px; background: rgba(128, 24, 54, 0.05); border-radius: 8px;">
-              <div style="font-size: 11px; color: #666; margin-bottom: 4px;">Acreditados</div>
-              <strong style="color: #801836; font-size: 20px; font-weight: 700;">${acreditados}</strong>
+      <div style="background: linear-gradient(135deg, rgba(255, 255, 255, 0.9) 0%, rgba(247, 245, 246, 0.9) 100%); backdrop-filter: blur(10px); border: 1px solid rgba(128, 24, 54, 0.1); padding: 20px; border-radius: 12px; border-left: 4px solid ${color}; box-shadow: 0 2px 8px rgba(128, 24, 54, 0.05); transition: all 0.3s;" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 12px rgba(128, 24, 54, 0.15)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 2px 8px rgba(128, 24, 54, 0.05)'">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px; gap: 16px; flex-wrap: wrap;">
+          <div style="flex: 1; min-width: 200px;">
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+              <strong style="color: #801836; font-size: 18px; font-weight: 700;">${rol}</strong>
+              <span style="background: ${rendimientoColor}; color: white; padding: 4px 10px; border-radius: 12px; font-size: 11px; font-weight: 600; display: flex; align-items: center; gap: 4px;">
+                <i class="fas ${rendimientoIcon}" style="font-size: 10px;"></i>
+                ${rendimientoTexto}
+              </span>
             </div>
-            <div style="text-align: center; padding: 8px 12px; background: rgba(128, 24, 54, 0.05); border-radius: 8px;">
-              <div style="font-size: 11px; color: #666; margin-bottom: 4px;">Asistentes</div>
-              <strong style="color: ${color}; font-size: 20px; font-weight: 700;">${asistentes}</strong>
+            <div style="font-size: 12px; color: #666; line-height: 1.5;">
+              <div style="margin-bottom: 4px;">
+                <strong style="color: ${color};">Tasa de asistencia: ${porcentaje.toFixed(1)}%</strong>
+                ${diferencia > 0 ? `<span style="color: #999; font-size: 11px;"> (${diferencia} no asistieron)</span>` : ''}
+              </div>
+              <div style="font-size: 11px; color: #999; font-style: italic;">
+                ${acreditados} acreditados → ${asistentes} asistentes
+              </div>
+            </div>
+          </div>
+          <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+            <div style="text-align: center; padding: 10px 14px; background: linear-gradient(135deg, rgba(128, 24, 54, 0.1) 0%, rgba(128, 24, 54, 0.05) 100%); border-radius: 8px; border: 1px solid rgba(128, 24, 54, 0.2); min-width: 90px;">
+              <div style="font-size: 10px; color: #666; margin-bottom: 4px; font-weight: 600;">Acreditados</div>
+              <strong style="color: #801836; font-size: 22px; font-weight: 700;">${acreditados}</strong>
+              <div style="font-size: 10px; color: #999; margin-top: 2px;">${totalAcreditados > 0 ? ((acreditados / totalAcreditados) * 100).toFixed(1) : 0}% del total</div>
+            </div>
+            <div style="text-align: center; padding: 10px 14px; background: linear-gradient(135deg, rgba(40, 167, 69, 0.1) 0%, rgba(40, 167, 69, 0.05) 100%); border-radius: 8px; border: 1px solid rgba(40, 167, 69, 0.2); min-width: 90px;">
+              <div style="font-size: 10px; color: #666; margin-bottom: 4px; font-weight: 600;">Asistentes</div>
+              <strong style="color: ${color}; font-size: 22px; font-weight: 700;">${asistentes}</strong>
+              <div style="font-size: 10px; color: #999; margin-top: 2px;">${totalAsistentes > 0 ? ((asistentes / totalAsistentes) * 100).toFixed(1) : 0}% del total</div>
             </div>
           </div>
         </div>
@@ -497,24 +569,34 @@ function createRoleChart(rolesAcreditados, rolesAsistentes) {
           <div>
             <div style="font-size: 12px; color: #666; margin-bottom: 6px; display: flex; align-items: center; gap: 6px;">
               <i class="fas fa-user-check" style="color: #801836; font-size: 12px;"></i>
-              Acreditados
+              Acreditados (relativo)
             </div>
-            <div style="position: relative; height: 24px; background: rgba(128, 24, 54, 0.1); border-radius: 6px; overflow: hidden;">
-              <div style="position: absolute; left: 0; top: 0; height: 100%; width: 0%; background: linear-gradient(135deg, #801836 0%, #6a1430 100%); border-radius: 6px; transition: width 0.8s ease ${index * 0.1}s;" data-width="${porcentajeAcreditados}"></div>
+            <div style="position: relative; height: 28px; background: rgba(128, 24, 54, 0.1); border-radius: 6px; overflow: hidden; box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);">
+              <div style="position: absolute; left: 0; top: 0; height: 100%; width: 0%; background: linear-gradient(135deg, #801836 0%, #6a1430 100%); border-radius: 6px; transition: width 0.8s ease ${index * 0.1}s; display: flex; align-items: center; justify-content: flex-end; padding-right: 8px;">
+                <span style="color: white; font-size: 11px; font-weight: 700; text-shadow: 0 1px 2px rgba(0,0,0,0.3);">${acreditados}</span>
+              </div>
             </div>
           </div>
           <div>
             <div style="font-size: 12px; color: #666; margin-bottom: 6px; display: flex; align-items: center; gap: 6px;">
               <i class="fas fa-user-friends" style="color: ${color}; font-size: 12px;"></i>
-              Asistentes
+              Asistentes (relativo)
             </div>
-            <div style="position: relative; height: 24px; background: rgba(128, 24, 54, 0.1); border-radius: 6px; overflow: hidden;">
-              <div style="position: absolute; left: 0; top: 0; height: 100%; width: 0%; background: linear-gradient(135deg, ${color} 0%, #801836 100%); border-radius: 6px; transition: width 0.8s ease ${index * 0.1 + 0.2}s;" data-width="${porcentajeAsistentes}"></div>
+            <div style="position: relative; height: 28px; background: rgba(128, 24, 54, 0.1); border-radius: 6px; overflow: hidden; box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);">
+              <div style="position: absolute; left: 0; top: 0; height: 100%; width: 0%; background: linear-gradient(135deg, ${color} 0%, #801836 100%); border-radius: 6px; transition: width 0.8s ease ${index * 0.1 + 0.2}s; display: flex; align-items: center; justify-content: flex-end; padding-right: 8px;">
+                <span style="color: white; font-size: 11px; font-weight: 700; text-shadow: 0 1px 2px rgba(0,0,0,0.3);">${asistentes}</span>
+              </div>
             </div>
           </div>
         </div>
-        <div style="height: 8px; background: rgba(128, 24, 54, 0.1); border-radius: 4px; overflow: hidden; position: relative;">
-          <div style="height: 100%; width: 0%; background: linear-gradient(135deg, ${color} 0%, #801836 100%); border-radius: 4px; transition: width 0.8s ease ${index * 0.1 + 0.4}s;" data-width="${porcentaje}"></div>
+        <div style="margin-top: 12px;">
+          <div style="font-size: 11px; color: #666; margin-bottom: 6px; display: flex; justify-content: space-between; align-items: center;">
+            <span><i class="fas fa-percentage" style="font-size: 10px; margin-right: 4px;"></i>Tasa de Asistencia</span>
+            <span style="font-weight: 600; color: ${rendimientoColor};">${porcentaje.toFixed(1)}%</span>
+          </div>
+          <div style="height: 10px; background: rgba(128, 24, 54, 0.1); border-radius: 5px; overflow: hidden; position: relative; box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);">
+            <div style="height: 100%; width: 0%; background: linear-gradient(135deg, ${rendimientoColor} 0%, ${color} 100%); border-radius: 5px; transition: width 0.8s ease ${index * 0.1 + 0.4}s; box-shadow: 0 1px 4px rgba(0,0,0,0.2);" data-width="${porcentaje}"></div>
+          </div>
         </div>
       </div>
     `;
@@ -629,31 +711,74 @@ function createWorkshopCharts(talleres1730, talleres1830) {
       'linear-gradient(135deg, #e83966 0%, #ce315a 100%)'
     ];
     
-    let html = '<div style="display: flex; flex-direction: column; gap: 16px; margin-top: 20px;">';
+    const totalAsistentes = sortedData.reduce((sum, [_, count]) => sum + count, 0);
+  const promedioAsistentes = sortedData.length > 0 ? (totalAsistentes / sortedData.length).toFixed(1) : 0;
+  
+  let html = `
+    <div style="margin-bottom: 20px; padding: 16px; background: linear-gradient(135deg, rgba(128, 24, 54, 0.05) 0%, rgba(128, 24, 54, 0.02) 100%); border-radius: 12px; border-left: 4px solid #801836;">
+      <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
+        <div>
+          <div style="font-size: 14px; font-weight: 700; color: #801836; margin-bottom: 4px;">
+            <i class="fas fa-info-circle" style="margin-right: 6px;"></i>
+            Resumen de la Sesión
+          </div>
+          <div style="font-size: 12px; color: #666;">
+            Total de asistencias: <strong>${totalAsistentes}</strong> | Promedio por taller: <strong>${promedioAsistentes}</strong> asistentes
+          </div>
+        </div>
+        <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+          <div style="text-align: center; padding: 8px 12px; background: rgba(128, 24, 54, 0.1); border-radius: 8px;">
+            <div style="font-size: 10px; color: #666; margin-bottom: 2px;">Total Talleres</div>
+            <div style="font-size: 18px; font-weight: 700; color: #801836;">${sortedData.length}</div>
+          </div>
+          <div style="text-align: center; padding: 8px 12px; background: rgba(40, 167, 69, 0.1); border-radius: 8px;">
+            <div style="font-size: 10px; color: #666; margin-bottom: 2px;">Total Asistencias</div>
+            <div style="font-size: 18px; font-weight: 700; color: #28a745;">${totalAsistentes}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 16px; margin-top: 20px;">
+  `;
+  
     sortedData.forEach(([taller, count], index) => {
       const porcentaje = maxCount > 0 ? (count / maxCount) * 100 : 0;
+      const porcentajeDelTotal = totalAsistentes > 0 ? ((count / totalAsistentes) * 100).toFixed(1) : 0;
       const color = colors[index % colors.length];
       const tallerEscapado = taller.replace(/</g, '&lt;').replace(/>/g, '&gt;');
       
+      // Indicador de popularidad
+      const esPopular = count >= promedioAsistentes;
+      const popularidadIcon = esPopular ? 'fa-fire' : 'fa-chart-line';
+      const popularidadColor = esPopular ? '#ff6b35' : '#801836';
+      
       html += `
-        <div style="background: rgba(247, 245, 246, 0.8); backdrop-filter: blur(10px); border: 1px solid rgba(128, 24, 54, 0.1); padding: 20px; border-radius: 12px; transition: all 0.3s; border-left: 4px solid #801836; box-shadow: 0 2px 8px rgba(128, 24, 54, 0.05);">
-          <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 12px;">
-            <div style="flex: 0 0 250px; min-width: 0;">
-              <div style="font-size: 14px; font-weight: 600; color: #1a1a1a; line-height: 1.3; word-wrap: break-word;">${tallerEscapado}</div>
+        <div style="background: linear-gradient(135deg, rgba(255, 255, 255, 0.9) 0%, rgba(247, 245, 246, 0.9) 100%); backdrop-filter: blur(10px); border: 1px solid rgba(128, 24, 54, 0.1); padding: 20px; border-radius: 12px; transition: all 0.3s; border-left: 4px solid #801836; box-shadow: 0 2px 8px rgba(128, 24, 54, 0.05);" onmouseover="this.style.transform='translateX(4px)'; this.style.boxShadow='0 4px 12px rgba(128, 24, 54, 0.15)'" onmouseout="this.style.transform='translateX(0)'; this.style.boxShadow='0 2px 8px rgba(128, 24, 54, 0.05)'">
+          <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 12px; flex-wrap: wrap;">
+            <div style="flex: 1; min-width: 250px;">
+              <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
+                <div style="font-size: 14px; font-weight: 600; color: #1a1a1a; line-height: 1.3; word-wrap: break-word;">${tallerEscapado}</div>
+                ${esPopular ? `<i class="fas ${popularidadIcon}" style="color: ${popularidadColor}; font-size: 14px;" title="Taller popular"></i>` : ''}
+              </div>
+              <div style="font-size: 11px; color: #999; font-style: italic;">
+                ${porcentajeDelTotal}% del total de asistencias de esta sesión
+              </div>
             </div>
-            <div style="flex: 1; position: relative;">
+            <div style="flex: 1; position: relative; min-width: 200px;">
               <div style="position: relative; height: 40px; background: rgba(128, 24, 54, 0.1); border-radius: 8px; overflow: hidden; box-shadow: inset 0 2px 4px rgba(0,0,0,0.05);">
                 <div style="position: absolute; left: 0; top: 0; height: 100%; width: 0%; background: ${color}; border-radius: 8px; transition: width 1s ease ${index * 0.1}s; display: flex; align-items: center; justify-content: flex-end; padding-right: 16px; box-shadow: 0 2px 8px rgba(128, 24, 54, 0.3);" data-width="${porcentaje}">
                   <span style="color: white; font-weight: 700; font-size: 15px; text-shadow: 0 1px 2px rgba(0,0,0,0.3);">${count}</span>
                 </div>
               </div>
             </div>
-            <div style="flex: 0 0 80px; text-align: right;">
-              <div style="display: flex; align-items: center; justify-content: flex-end; gap: 8px;">
-                <i class="fas fa-users" style="color: #801836; font-size: 16px;"></i>
-                <strong style="color: #801836; font-size: 20px; font-weight: 700;">${count}</strong>
+            <div style="flex: 0 0 100px; text-align: right;">
+              <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 4px;">
+                <div style="display: flex; align-items: center; justify-content: flex-end; gap: 8px;">
+                  <i class="fas fa-users" style="color: #801836; font-size: 16px;"></i>
+                  <strong style="color: #801836; font-size: 22px; font-weight: 700;">${count}</strong>
+                </div>
+                <div style="font-size: 11px; color: #666; font-style: italic;">asistentes</div>
               </div>
-              <div style="font-size: 11px; color: #666; font-style: italic; margin-top: 4px;">asistentes</div>
             </div>
           </div>
         </div>
@@ -698,8 +823,317 @@ function createWorkshopCharts(talleres1730, talleres1830) {
   }
 }
 
+// Función para crear gráfico de comparación Acreditaciones vs Staff
+function createAcreditacionesStaffChart() {
+  const container = document.querySelector('#resumen .chart-container');
+  if (!container || !container.querySelector('h3')?.textContent?.includes('Comparación Acreditaciones vs Staff')) {
+    // Buscar el contenedor correcto
+    const containers = document.querySelectorAll('#resumen .chart-container');
+    for (const c of containers) {
+      if (c.querySelector('h3')?.textContent?.includes('Comparación Acreditaciones vs Staff')) {
+        container = c;
+        break;
+      }
+    }
+    if (!container || !container.querySelector('h3')?.textContent?.includes('Comparación Acreditaciones vs Staff')) {
+      return;
+    }
+  }
+  
+  // Calcular acreditados totales
+  const totalAcreditados = acreditacionesData.length;
+  
+  // Calcular staff (personas con email @p.csmb)
+  const acreditadosStaff = acreditacionesData.filter(row => {
+    const email = row.Email?.trim()?.toLowerCase();
+    return email && email.endsWith('@p.csmb');
+  }).length;
+  
+  const acreditadosNoStaff = totalAcreditados - acreditadosStaff;
+  
+  // Calcular asistentes con talleres
+  const asistentesConTalleres = asistenciaData.filter(row => {
+    const taller1730 = row['17:30']?.trim();
+    const taller1830 = row['18:30']?.trim();
+    return (taller1730 && taller1730 !== '' && taller1730 !== 'Primera sesión') ||
+           (taller1830 && taller1830 !== '' && taller1830 !== 'Segunda sesión');
+  });
+  
+  const totalAsistentes = asistentesConTalleres.length;
+  
+  // Calcular asistentes staff
+  const asistentesStaff = asistentesConTalleres.filter(row => {
+    const email = row.Email?.trim()?.toLowerCase();
+    return email && email.endsWith('@p.csmb');
+  }).length;
+  
+  const asistentesNoStaff = totalAsistentes - asistentesStaff;
+  
+  // Calcular tasas
+  const tasaAsistenciaStaff = acreditadosStaff > 0 ? ((asistentesStaff / acreditadosStaff) * 100).toFixed(1) : 0;
+  const tasaAsistenciaNoStaff = acreditadosNoStaff > 0 ? ((asistentesNoStaff / acreditadosNoStaff) * 100).toFixed(1) : 0;
+  const tasaAsistenciaGeneral = totalAcreditados > 0 ? ((totalAsistentes / totalAcreditados) * 100).toFixed(1) : 0;
+  
+  let html = `
+    <div style="margin-top: 20px; padding: 28px; background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(247, 245, 246, 0.95) 100%); border-radius: 16px; border: 1px solid rgba(128, 24, 54, 0.12); box-shadow: 0 4px 16px rgba(128, 24, 54, 0.08);">
+      <div style="margin-bottom: 24px; padding-bottom: 20px; border-bottom: 2px solid rgba(128, 24, 54, 0.1);">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
+          <div>
+            <h4 style="color: #801836; font-size: 18px; font-weight: 700; margin: 0 0 8px 0; display: flex; align-items: center; gap: 8px;">
+              <i class="fas fa-users" style="font-size: 18px;"></i>
+              Comparación Acreditaciones vs Staff
+            </h4>
+            <p style="font-size: 13px; color: #666; margin: 0; line-height: 1.5;">
+              Análisis comparativo entre <strong>acreditaciones</strong> (personas invitadas) y <strong>asistentes reales</strong> (que participaron en talleres), diferenciando entre <strong>staff del colegio</strong> (docentes @p.csmb) y <strong>asistentes externos</strong>.
+            </p>
+          </div>
+          <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+            <div style="text-align: center; padding: 12px 16px; background: rgba(128, 24, 54, 0.05); border-radius: 8px; border: 1px solid rgba(128, 24, 54, 0.1);">
+              <div style="font-size: 11px; color: #666; margin-bottom: 4px;">Total Acreditados</div>
+              <div style="font-size: 24px; font-weight: 700; color: #801836;">${totalAcreditados}</div>
+            </div>
+            <div style="text-align: center; padding: 12px 16px; background: rgba(40, 167, 69, 0.05); border-radius: 8px; border: 1px solid rgba(40, 167, 69, 0.1);">
+              <div style="font-size: 11px; color: #666; margin-bottom: 4px;">Total Asistentes</div>
+              <div style="font-size: 24px; font-weight: 700; color: #28a745;">${totalAsistentes}</div>
+            </div>
+            <div style="text-align: center; padding: 12px 16px; background: linear-gradient(135deg, rgba(128, 24, 54, 0.1) 0%, rgba(128, 24, 54, 0.05) 100%); border-radius: 8px; border-left: 3px solid #801836;">
+              <div style="font-size: 11px; color: #666; margin-bottom: 4px;">Tasa Asistencia</div>
+              <div style="font-size: 24px; font-weight: 700; color: ${parseFloat(tasaAsistenciaGeneral) >= 80 ? '#28a745' : parseFloat(tasaAsistenciaGeneral) >= 60 ? '#ffc107' : '#dc3545'};">${tasaAsistenciaGeneral}%</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 24px;">
+        <!-- Staff del Colegio -->
+        <div style="background: linear-gradient(135deg, rgba(128, 24, 54, 0.1) 0%, rgba(128, 24, 54, 0.05) 100%); padding: 24px; border-radius: 12px; border-left: 4px solid #801836; box-shadow: 0 2px 8px rgba(128, 24, 54, 0.08);">
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 16px;">
+            <i class="fas fa-school" style="font-size: 20px; color: #801836;"></i>
+            <h5 style="color: #801836; font-size: 16px; font-weight: 700; margin: 0;">Staff del Colegio</h5>
+          </div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px;">
+            <div style="text-align: center; padding: 12px; background: rgba(128, 24, 54, 0.1); border-radius: 8px;">
+              <div style="font-size: 11px; color: #666; margin-bottom: 4px;">Acreditados</div>
+              <div style="font-size: 28px; font-weight: 700; color: #801836;">${acreditadosStaff}</div>
+            </div>
+            <div style="text-align: center; padding: 12px; background: rgba(40, 167, 69, 0.1); border-radius: 8px;">
+              <div style="font-size: 11px; color: #666; margin-bottom: 4px;">Asistentes</div>
+              <div style="font-size: 28px; font-weight: 700; color: #28a745;">${asistentesStaff}</div>
+            </div>
+          </div>
+          <div style="margin-bottom: 12px;">
+            <div style="font-size: 12px; color: #666; margin-bottom: 6px; display: flex; justify-content: space-between; align-items: center;">
+              <span><i class="fas fa-percentage" style="font-size: 10px; margin-right: 4px;"></i>Tasa de Asistencia</span>
+              <span style="font-weight: 600; color: ${parseFloat(tasaAsistenciaStaff) >= 80 ? '#28a745' : parseFloat(tasaAsistenciaStaff) >= 60 ? '#ffc107' : '#dc3545'};">${tasaAsistenciaStaff}%</span>
+            </div>
+            <div style="height: 10px; background: rgba(128, 24, 54, 0.1); border-radius: 5px; overflow: hidden; position: relative; box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);">
+              <div style="height: 100%; width: 0%; background: linear-gradient(135deg, ${parseFloat(tasaAsistenciaStaff) >= 80 ? '#28a745' : parseFloat(tasaAsistenciaStaff) >= 60 ? '#ffc107' : '#dc3545'} 0%, #801836 100%); border-radius: 5px; transition: width 1s ease; box-shadow: 0 1px 4px rgba(0,0,0,0.2);" data-width="${tasaAsistenciaStaff}"></div>
+            </div>
+          </div>
+          ${acreditadosStaff > asistentesStaff ? `
+            <div style="font-size: 11px; color: #999; font-style: italic; margin-top: 8px;">
+              ${acreditadosStaff - asistentesStaff} no asistieron
+            </div>
+          ` : ''}
+        </div>
+        
+        <!-- Asistentes Externos -->
+        <div style="background: linear-gradient(135deg, rgba(40, 167, 69, 0.1) 0%, rgba(40, 167, 69, 0.05) 100%); padding: 24px; border-radius: 12px; border-left: 4px solid #28a745; box-shadow: 0 2px 8px rgba(40, 167, 69, 0.08);">
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 16px;">
+            <i class="fas fa-user-friends" style="font-size: 20px; color: #28a745;"></i>
+            <h5 style="color: #28a745; font-size: 16px; font-weight: 700; margin: 0;">Asistentes Externos</h5>
+          </div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px;">
+            <div style="text-align: center; padding: 12px; background: rgba(128, 24, 54, 0.1); border-radius: 8px;">
+              <div style="font-size: 11px; color: #666; margin-bottom: 4px;">Acreditados</div>
+              <div style="font-size: 28px; font-weight: 700; color: #801836;">${acreditadosNoStaff}</div>
+            </div>
+            <div style="text-align: center; padding: 12px; background: rgba(40, 167, 69, 0.1); border-radius: 8px;">
+              <div style="font-size: 11px; color: #666; margin-bottom: 4px;">Asistentes</div>
+              <div style="font-size: 28px; font-weight: 700; color: #28a745;">${asistentesNoStaff}</div>
+            </div>
+          </div>
+          <div style="margin-bottom: 12px;">
+            <div style="font-size: 12px; color: #666; margin-bottom: 6px; display: flex; justify-content: space-between; align-items: center;">
+              <span><i class="fas fa-percentage" style="font-size: 10px; margin-right: 4px;"></i>Tasa de Asistencia</span>
+              <span style="font-weight: 600; color: ${parseFloat(tasaAsistenciaNoStaff) >= 80 ? '#28a745' : parseFloat(tasaAsistenciaNoStaff) >= 60 ? '#ffc107' : '#dc3545'};">${tasaAsistenciaNoStaff}%</span>
+            </div>
+            <div style="height: 10px; background: rgba(40, 167, 69, 0.1); border-radius: 5px; overflow: hidden; position: relative; box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);">
+              <div style="height: 100%; width: 0%; background: linear-gradient(135deg, ${parseFloat(tasaAsistenciaNoStaff) >= 80 ? '#28a745' : parseFloat(tasaAsistenciaNoStaff) >= 60 ? '#ffc107' : '#dc3545'} 0%, #28a745 100%); border-radius: 5px; transition: width 1s ease 0.2s; box-shadow: 0 1px 4px rgba(0,0,0,0.2);" data-width="${tasaAsistenciaNoStaff}"></div>
+            </div>
+          </div>
+          ${acreditadosNoStaff > asistentesNoStaff ? `
+            <div style="font-size: 11px; color: #999; font-style: italic; margin-top: 8px;">
+              ${acreditadosNoStaff - asistentesNoStaff} no asistieron
+            </div>
+          ` : ''}
+        </div>
+      </div>
+      
+      <div style="padding: 16px; background: linear-gradient(135deg, rgba(128, 24, 54, 0.05) 0%, rgba(128, 24, 54, 0.02) 100%); border-radius: 12px; border-left: 4px solid #801836; margin-top: 24px;">
+        <div style="font-size: 13px; color: #666; line-height: 1.6;">
+          <strong style="color: #801836;">Resumen:</strong> De los <strong>${totalAcreditados} acreditados</strong>, 
+          <strong>${acreditadosStaff} son staff del colegio</strong> (${((acreditadosStaff / totalAcreditados) * 100).toFixed(1)}%) y 
+          <strong>${acreditadosNoStaff} son asistentes externos</strong> (${((acreditadosNoStaff / totalAcreditados) * 100).toFixed(1)}%). 
+          La tasa de asistencia general es del <strong>${tasaAsistenciaGeneral}%</strong>, con 
+          <strong>${tasaAsistenciaStaff}%</strong> para staff y <strong>${tasaAsistenciaNoStaff}%</strong> para externos.
+        </div>
+      </div>
+    </div>
+  `;
+  
+  const wrapper = container.querySelector('.chart-wrapper');
+  if (wrapper) {
+    wrapper.innerHTML = html;
+    // Animar las barras
+    setTimeout(() => {
+      wrapper.querySelectorAll('[data-width]').forEach(bar => {
+        bar.style.width = bar.getAttribute('data-width') + '%';
+      });
+    }, 100);
+  }
+}
+
+// Función para crear resumen visual de talleres
+function createResumenTalleres(talleres1730, talleres1830) {
+  const container = document.querySelector('#resumen-talleres');
+  if (!container) return;
+  
+  const total1730 = Object.values(talleres1730).reduce((sum, val) => sum + val, 0);
+  const total1830 = Object.values(talleres1830).reduce((sum, val) => sum + val, 0);
+  const totalAsistentes = total1730 + total1830;
+  const numTalleres1730 = Object.keys(talleres1730).length;
+  const numTalleres1830 = Object.keys(talleres1830).length;
+  const totalTalleres = numTalleres1730 + numTalleres1830;
+  const promedioPorTaller = totalTalleres > 0 ? (totalAsistentes / totalTalleres).toFixed(1) : 0;
+  
+  // Taller más popular
+  const tallerMasPopular1730 = Object.entries(talleres1730).sort((a, b) => b[1] - a[1])[0];
+  const tallerMasPopular1830 = Object.entries(talleres1830).sort((a, b) => b[1] - a[1])[0];
+  const tallerMasPopular = (tallerMasPopular1730?.[1] || 0) > (tallerMasPopular1830?.[1] || 0) 
+    ? tallerMasPopular1730 
+    : tallerMasPopular1830;
+  
+  let html = `
+    <div style="margin-top: 20px; padding: 28px; background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(247, 245, 246, 0.95) 100%); border-radius: 16px; border: 1px solid rgba(128, 24, 54, 0.12); box-shadow: 0 4px 16px rgba(128, 24, 54, 0.08);">
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 24px;">
+        <div style="background: linear-gradient(135deg, rgba(128, 24, 54, 0.1) 0%, rgba(128, 24, 54, 0.05) 100%); padding: 20px; border-radius: 12px; border-left: 4px solid #801836; text-align: center; transition: all 0.3s;" onmouseover="this.style.transform='translateY(-3px)'; this.style.boxShadow='0 4px 12px rgba(128, 24, 54, 0.15)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none'">
+          <i class="fas fa-chalkboard-teacher" style="font-size: 2rem; color: #801836; margin-bottom: 12px; display: block;"></i>
+          <div style="font-size: 32px; font-weight: 700; color: #801836; margin-bottom: 4px;">${totalTalleres}</div>
+          <div style="font-size: 14px; color: #666;">Total Talleres</div>
+          <div style="font-size: 12px; color: #999; margin-top: 8px;">${numTalleres1730} (17:30) + ${numTalleres1830} (18:30)</div>
+        </div>
+        
+        <div style="background: linear-gradient(135deg, rgba(40, 167, 69, 0.1) 0%, rgba(40, 167, 69, 0.05) 100%); padding: 20px; border-radius: 12px; border-left: 4px solid #28a745; text-align: center; transition: all 0.3s;" onmouseover="this.style.transform='translateY(-3px)'; this.style.boxShadow='0 4px 12px rgba(40, 167, 69, 0.15)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none'">
+          <i class="fas fa-users" style="font-size: 2rem; color: #28a745; margin-bottom: 12px; display: block;"></i>
+          <div style="font-size: 32px; font-weight: 700; color: #28a745; margin-bottom: 4px;">${totalAsistentes}</div>
+          <div style="font-size: 14px; color: #666;">Total Asistencias</div>
+          <div style="font-size: 12px; color: #999; margin-top: 8px;">${total1730} (17:30) + ${total1830} (18:30)</div>
+        </div>
+        
+        <div style="background: linear-gradient(135deg, rgba(255, 193, 7, 0.1) 0%, rgba(255, 193, 7, 0.05) 100%); padding: 20px; border-radius: 12px; border-left: 4px solid #ffc107; text-align: center; transition: all 0.3s;" onmouseover="this.style.transform='translateY(-3px)'; this.style.boxShadow='0 4px 12px rgba(255, 193, 7, 0.15)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none'">
+          <i class="fas fa-chart-line" style="font-size: 2rem; color: #ffc107; margin-bottom: 12px; display: block;"></i>
+          <div style="font-size: 32px; font-weight: 700; color: #ffc107; margin-bottom: 4px;">${promedioPorTaller}</div>
+          <div style="font-size: 14px; color: #666;">Promedio por Taller</div>
+          <div style="font-size: 12px; color: #999; margin-top: 8px;">Asistentes promedio</div>
+        </div>
+        
+        ${tallerMasPopular ? `
+        <div style="background: linear-gradient(135deg, rgba(128, 24, 54, 0.1) 0%, rgba(128, 24, 54, 0.05) 100%); padding: 20px; border-radius: 12px; border-left: 4px solid #801836; transition: all 0.3s;" onmouseover="this.style.transform='translateY(-3px)'; this.style.boxShadow='0 4px 12px rgba(128, 24, 54, 0.15)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none'">
+          <i class="fas fa-trophy" style="font-size: 2rem; color: #ffd700; margin-bottom: 12px; display: block; text-align: center;"></i>
+          <div style="font-size: 18px; font-weight: 700; color: #801836; margin-bottom: 8px; text-align: center;">Taller Más Popular</div>
+          <div style="font-size: 13px; color: #666; margin-bottom: 8px; text-align: center; line-height: 1.4;">${tallerMasPopular[0].substring(0, 50)}${tallerMasPopular[0].length > 50 ? '...' : ''}</div>
+          <div style="font-size: 24px; font-weight: 700; color: #801836; text-align: center;">${tallerMasPopular[1]}</div>
+          <div style="font-size: 12px; color: #999; text-align: center; margin-top: 4px;">asistentes</div>
+        </div>
+        ` : ''}
+      </div>
+    </div>
+  `;
+  
+  const wrapper = container.querySelector('.chart-wrapper');
+  if (wrapper) {
+    wrapper.innerHTML = html;
+  }
+}
+
+// Función para crear resumen visual de valoraciones
+function createResumenValoracion(ratings, valoracionCharla) {
+  const container = document.querySelector('#resumen-valoracion');
+  if (!container) return;
+  
+  const totalRatings = Object.values(ratings).reduce((sum, val) => sum + val, 0);
+  const promedioForo = totalRatings > 0 
+    ? (Object.entries(ratings).reduce((sum, [v, c]) => sum + parseFloat(v) * c, 0) / totalRatings).toFixed(2)
+    : 0;
+  
+  const totalCharla = Object.values(valoracionCharla).reduce((sum, val) => sum + val, 0);
+  const promedioCharla = totalCharla > 0
+    ? (Object.entries(valoracionCharla).reduce((sum, [v, c]) => sum + parseFloat(v) * c, 0) / totalCharla).toFixed(2)
+    : 0;
+  
+  // Calcular % de satisfacción (4 y 5 estrellas)
+  const satisfechosForo = Object.entries(ratings)
+    .filter(([v]) => parseFloat(v) >= 4)
+    .reduce((sum, [_, c]) => sum + c, 0);
+  const porcentajeSatisfaccionForo = totalRatings > 0 ? ((satisfechosForo / totalRatings) * 100).toFixed(1) : 0;
+  
+  const satisfechosCharla = Object.entries(valoracionCharla)
+    .filter(([v]) => parseFloat(v) >= 4)
+    .reduce((sum, [_, c]) => sum + c, 0);
+  const porcentajeSatisfaccionCharla = totalCharla > 0 ? ((satisfechosCharla / totalCharla) * 100).toFixed(1) : 0;
+  
+  let html = `
+    <div style="margin-top: 20px; padding: 28px; background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(247, 245, 246, 0.95) 100%); border-radius: 16px; border: 1px solid rgba(128, 24, 54, 0.12); box-shadow: 0 4px 16px rgba(128, 24, 54, 0.08);">
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px;">
+        <div style="background: linear-gradient(135deg, rgba(128, 24, 54, 0.1) 0%, rgba(128, 24, 54, 0.05) 100%); padding: 24px; border-radius: 12px; border-left: 4px solid #801836; text-align: center; transition: all 0.3s;" onmouseover="this.style.transform='translateY(-3px)'; this.style.boxShadow='0 4px 12px rgba(128, 24, 54, 0.15)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none'">
+          <i class="fas fa-star" style="font-size: 2.5rem; color: #ffd700; margin-bottom: 12px; display: block;"></i>
+          <div style="font-size: 36px; font-weight: 700; color: #801836; margin-bottom: 8px;">${promedioForo}</div>
+          <div style="font-size: 14px; color: #666; margin-bottom: 12px;">Valoración Media del Foro</div>
+          <div style="display: flex; justify-content: center; gap: 4px; margin-bottom: 12px;">
+            ${'<i class="fas fa-star" style="color: #ffd700; font-size: 18px;"></i>'.repeat(Math.round(parseFloat(promedioForo)))}
+            ${'<i class="far fa-star" style="color: #ddd; font-size: 18px;"></i>'.repeat(5 - Math.round(parseFloat(promedioForo)))}
+          </div>
+          <div style="font-size: 12px; color: #999;">${totalRatings} valoraciones</div>
+        </div>
+        
+        <div style="background: linear-gradient(135deg, rgba(40, 167, 69, 0.1) 0%, rgba(40, 167, 69, 0.05) 100%); padding: 24px; border-radius: 12px; border-left: 4px solid #28a745; text-align: center; transition: all 0.3s;" onmouseover="this.style.transform='translateY(-3px)'; this.style.boxShadow='0 4px 12px rgba(40, 167, 69, 0.15)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none'">
+          <i class="fas fa-smile" style="font-size: 2.5rem; color: #28a745; margin-bottom: 12px; display: block;"></i>
+          <div style="font-size: 36px; font-weight: 700; color: #28a745; margin-bottom: 8px;">${porcentajeSatisfaccionForo}%</div>
+          <div style="font-size: 14px; color: #666; margin-bottom: 12px;">Satisfacción del Foro</div>
+          <div style="font-size: 12px; color: #999;">(4-5 estrellas)</div>
+        </div>
+        
+        <div style="background: linear-gradient(135deg, rgba(128, 24, 54, 0.1) 0%, rgba(128, 24, 54, 0.05) 100%); padding: 24px; border-radius: 12px; border-left: 4px solid #801836; text-align: center; transition: all 0.3s;" onmouseover="this.style.transform='translateY(-3px)'; this.style.boxShadow='0 4px 12px rgba(128, 24, 54, 0.15)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none'">
+          <i class="fas fa-microphone-alt" style="font-size: 2.5rem; color: #801836; margin-bottom: 12px; display: block;"></i>
+          <div style="font-size: 36px; font-weight: 700; color: #801836; margin-bottom: 8px;">${promedioCharla}</div>
+          <div style="font-size: 14px; color: #666; margin-bottom: 12px;">Valoración Charla Inspiracional</div>
+          <div style="display: flex; justify-content: center; gap: 4px; margin-bottom: 12px;">
+            ${'<i class="fas fa-star" style="color: #ffd700; font-size: 18px;"></i>'.repeat(Math.round(parseFloat(promedioCharla)))}
+            ${'<i class="far fa-star" style="color: #ddd; font-size: 18px;"></i>'.repeat(5 - Math.round(parseFloat(promedioCharla)))}
+          </div>
+          <div style="font-size: 12px; color: #999;">${totalCharla} valoraciones</div>
+        </div>
+        
+        <div style="background: linear-gradient(135deg, rgba(40, 167, 69, 0.1) 0%, rgba(40, 167, 69, 0.05) 100%); padding: 24px; border-radius: 12px; border-left: 4px solid #28a745; text-align: center; transition: all 0.3s;" onmouseover="this.style.transform='translateY(-3px)'; this.style.boxShadow='0 4px 12px rgba(40, 167, 69, 0.15)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none'">
+          <i class="fas fa-heart" style="font-size: 2.5rem; color: #28a745; margin-bottom: 12px; display: block;"></i>
+          <div style="font-size: 36px; font-weight: 700; color: #28a745; margin-bottom: 8px;">${porcentajeSatisfaccionCharla}%</div>
+          <div style="font-size: 14px; color: #666; margin-bottom: 12px;">Satisfacción Charla</div>
+          <div style="font-size: 12px; color: #999;">(4-5 estrellas)</div>
+        </div>
+      </div>
+    </div>
+  `;
+  
+  const wrapper = container.querySelector('.chart-wrapper');
+  if (wrapper) {
+    wrapper.innerHTML = html;
+  }
+}
+
 function createRatingChart(ratings) {
-  const container = document.querySelector('#valoracion .chart-container');
+  const containers = document.querySelectorAll('#valoracion .chart-container');
+  const container = Array.from(containers).find(c => !c.id || c.id !== 'resumen-valoracion');
   if (!container) return;
   
   const sortedRatings = Object.entries(ratings)
@@ -707,11 +1141,47 @@ function createRatingChart(ratings) {
   
   const maxCount = Math.max(...Object.values(ratings), 1);
   const total = Object.values(ratings).reduce((sum, val) => sum + val, 0);
+  const promedio = total > 0 
+    ? (Object.entries(ratings).reduce((sum, [v, c]) => sum + parseFloat(v) * c, 0) / total).toFixed(2)
+    : 0;
   
-  // Crear gráfico de barras verticales mejorado
+  // Calcular % de satisfacción (4 y 5 estrellas)
+  const satisfechos = Object.entries(ratings)
+    .filter(([v]) => parseFloat(v) >= 4)
+    .reduce((sum, [_, c]) => sum + c, 0);
+  const porcentajeSatisfaccion = total > 0 ? ((satisfechos / total) * 100).toFixed(1) : 0;
+  
+  // Crear gráfico de barras verticales mejorado con contexto
   let html = `
-    <div style="margin-top: 20px; padding: 24px; background: rgba(247, 245, 246, 0.8); border-radius: 12px; border: 1px solid rgba(128, 24, 54, 0.1);">
-      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 20px; align-items: end; min-height: 300px;">
+    <div style="margin-top: 20px; padding: 28px; background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(247, 245, 246, 0.95) 100%); border-radius: 16px; border: 1px solid rgba(128, 24, 54, 0.12); box-shadow: 0 4px 16px rgba(128, 24, 54, 0.08);">
+      <div style="margin-bottom: 24px; padding-bottom: 20px; border-bottom: 2px solid rgba(128, 24, 54, 0.1);">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
+          <div>
+            <h4 style="color: #801836; font-size: 18px; font-weight: 700; margin: 0 0 8px 0; display: flex; align-items: center; gap: 8px;">
+              <i class="fas fa-star" style="font-size: 18px;"></i>
+              Distribución de Valoraciones
+            </h4>
+            <p style="font-size: 13px; color: #666; margin: 0; line-height: 1.5;">
+              Distribución de las valoraciones recibidas sobre el Foro de Innovación Educativa (escala 1-5 estrellas).
+            </p>
+          </div>
+          <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+            <div style="text-align: center; padding: 10px 14px; background: rgba(128, 24, 54, 0.05); border-radius: 8px; border: 1px solid rgba(128, 24, 54, 0.1);">
+              <div style="font-size: 10px; color: #666; margin-bottom: 4px;">Promedio</div>
+              <div style="font-size: 20px; font-weight: 700; color: #801836;">${promedio}</div>
+            </div>
+            <div style="text-align: center; padding: 10px 14px; background: rgba(40, 167, 69, 0.05); border-radius: 8px; border: 1px solid rgba(40, 167, 69, 0.1);">
+              <div style="font-size: 10px; color: #666; margin-bottom: 4px;">Satisfacción</div>
+              <div style="font-size: 20px; font-weight: 700; color: #28a745;">${porcentajeSatisfaccion}%</div>
+            </div>
+            <div style="text-align: center; padding: 10px 14px; background: rgba(128, 24, 54, 0.05); border-radius: 8px; border: 1px solid rgba(128, 24, 54, 0.1);">
+              <div style="font-size: 10px; color: #666; margin-bottom: 4px;">Total</div>
+              <div style="font-size: 20px; font-weight: 700; color: #801836;">${total}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 20px; align-items: end; min-height: 320px; margin-bottom: 24px;">
   `;
   
   sortedRatings.forEach(([rating, count], index) => {
@@ -742,9 +1212,11 @@ function createRatingChart(ratings) {
   
   html += `
       </div>
-      <div style="margin-top: 24px; padding-top: 20px; border-top: 1px solid rgba(128, 24, 54, 0.1); text-align: center;">
-        <div style="font-size: 14px; color: #666;">
-          <strong style="color: #801836;">Total:</strong> ${total} valoraciones recibidas
+      <div style="padding: 16px; background: linear-gradient(135deg, rgba(128, 24, 54, 0.05) 0%, rgba(128, 24, 54, 0.02) 100%); border-radius: 12px; border-left: 4px solid #801836; margin-top: 24px;">
+        <div style="font-size: 13px; color: #666; line-height: 1.6;">
+          <strong style="color: #801836;">Resumen:</strong> Se recibieron <strong>${total} valoraciones</strong> con un promedio de <strong>${promedio}/5</strong> estrellas. 
+          El <strong>${porcentajeSatisfaccion}%</strong> de los encuestados calificó el foro con 4 o 5 estrellas (satisfacción alta).
+          ${parseFloat(porcentajeSatisfaccion) >= 80 ? '⭐ Excelente nivel de satisfacción' : parseFloat(porcentajeSatisfaccion) >= 60 ? '👍 Buena satisfacción' : '📊 Hay margen de mejora'}
         </div>
       </div>
     </div>
@@ -1191,10 +1663,15 @@ function createSourceChart(fuentes) {
   
   let html = `
     <div style="margin-top: 30px; padding-top: 30px; border-top: 2px solid rgba(128, 24, 54, 0.1);">
-      <h4 style="color: #801836; font-size: 18px; font-weight: 700; margin-bottom: 20px; display: flex; align-items: center; gap: 8px;">
-        <i class="fas fa-bullhorn" style="font-size: 18px;"></i>
-        ¿Cómo se enteraron del evento?
-      </h4>
+      <div style="margin-bottom: 20px; padding-bottom: 16px; border-bottom: 2px solid rgba(128, 24, 54, 0.1);">
+        <h4 style="color: #801836; font-size: 18px; font-weight: 700; margin: 0 0 8px 0; display: flex; align-items: center; gap: 8px;">
+          <i class="fas fa-bullhorn" style="font-size: 18px;"></i>
+          ¿Cómo se enteraron del evento?
+        </h4>
+        <p style="font-size: 13px; color: #666; margin: 0; line-height: 1.5;">
+          Análisis de las fuentes de información que utilizaron los participantes para conocer el evento. Esto ayuda a evaluar la efectividad de las estrategias de comunicación y difusión.
+        </p>
+      </div>
       <div style="display: flex; flex-direction: column; gap: 16px;">
   `;
   
@@ -2058,13 +2535,39 @@ function createNPSChart() {
         </div>
       </div>
       
-      <!-- Información adicional -->
-      <div style="background: linear-gradient(135deg, rgba(128, 24, 54, 0.05) 0%, rgba(128, 24, 54, 0.02) 100%); padding: 16px; border-radius: 12px; border-left: 4px solid #801836;">
-        <div style="font-size: 12px; color: #666; line-height: 1.6;">
-          <strong style="color: #801836;">¿Qué es el NPS?</strong><br>
-          El Net Promoter Score mide la lealtad del cliente en una escala de -100 a +100. 
-          Se calcula como: <strong>% Promotores - % Detractores</strong>.<br>
-          <strong>Interpretación:</strong> NPS ≥ 50 (Excelente), 0-49 (Bueno), < 0 (Necesita mejora)
+      <!-- Información adicional mejorada -->
+      <div style="background: linear-gradient(135deg, rgba(128, 24, 54, 0.05) 0%, rgba(128, 24, 54, 0.02) 100%); padding: 20px; border-radius: 12px; border-left: 4px solid #801836;">
+        <div style="margin-bottom: 16px;">
+          <h5 style="color: #801836; font-size: 14px; font-weight: 700; margin: 0 0 8px 0; display: flex; align-items: center; gap: 6px;">
+            <i class="fas fa-question-circle" style="font-size: 14px;"></i>
+            ¿Qué es el NPS?
+          </h5>
+          <div style="font-size: 12px; color: #666; line-height: 1.7;">
+            El <strong>Net Promoter Score (NPS)</strong> mide la lealtad y satisfacción de los participantes en una escala de <strong>-100 a +100</strong>.
+            Se calcula como: <strong>% Promotores - % Detractores</strong>.
+          </div>
+        </div>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 12px;">
+          <div style="padding: 12px; background: rgba(40, 167, 69, 0.1); border-radius: 8px; border-left: 3px solid #28a745;">
+            <div style="font-size: 11px; color: #666; margin-bottom: 4px; font-weight: 600;">Promotores (9-10)</div>
+            <div style="font-size: 12px; color: #1a1a1a;">Personas que recomendarían el evento</div>
+          </div>
+          <div style="padding: 12px; background: rgba(255, 193, 7, 0.1); border-radius: 8px; border-left: 3px solid #ffc107;">
+            <div style="font-size: 11px; color: #666; margin-bottom: 4px; font-weight: 600;">Pasivos (7-8)</div>
+            <div style="font-size: 12px; color: #1a1a1a;">Personas neutrales</div>
+          </div>
+          <div style="padding: 12px; background: rgba(220, 53, 69, 0.1); border-radius: 8px; border-left: 3px solid #dc3545;">
+            <div style="font-size: 11px; color: #666; margin-bottom: 4px; font-weight: 600;">Detractores (0-6)</div>
+            <div style="font-size: 12px; color: #1a1a1a;">Personas que no recomendarían</div>
+          </div>
+        </div>
+        <div style="padding: 12px; background: rgba(128, 24, 54, 0.08); border-radius: 8px; margin-top: 12px;">
+          <div style="font-size: 11px; color: #666; margin-bottom: 6px; font-weight: 600;">Interpretación del NPS:</div>
+          <div style="display: flex; gap: 16px; flex-wrap: wrap; font-size: 11px;">
+            <span style="color: #28a745;"><strong>≥ 50:</strong> Excelente</span>
+            <span style="color: #ffc107;"><strong>0-49:</strong> Bueno</span>
+            <span style="color: #dc3545;"><strong>&lt; 0:</strong> Necesita mejora</span>
+          </div>
         </div>
       </div>
     </div>
@@ -2107,6 +2610,10 @@ const datosForoXIII = {
     'Otros': 5
   }
 };
+
+// Variables globales para talleres (necesarias para la comparativa)
+let talleres1730Asistentes = {};
+let talleres1830Asistentes = {};
 
 // Función para crear la comparativa entre Foro XIII y XIV
 function createComparativaForos() {
@@ -2176,11 +2683,43 @@ function createComparativaForos() {
     datosForoXIV.nps = Math.round(porcentajePromotores - porcentajeDetractores);
   }
   
+  // Calcular datos adicionales del Foro XIV
+  // Perfiles
+  const perfilesXIV = {};
+  respuestasData.forEach(row => {
+    const perfil = row['Soy...']?.trim() || 'Sin especificar';
+    perfilesXIV[perfil] = (perfilesXIV[perfil] || 0) + 1;
+  });
+  
+  // Cómo se enteraron
+  const fuentesXIV = {};
+  respuestasData.forEach(row => {
+    const fuente = row['¿Cómo te enteraste de nuestro evento?']?.trim() || 'Sin especificar';
+    fuentesXIV[fuente] = (fuentesXIV[fuente] || 0) + 1;
+  });
+  
+  // Talleres (usar variables globales si están disponibles)
+  const talleres1730Data = window.talleres1730Asistentes || talleres1730Asistentes || {};
+  const talleres1830Data = window.talleres1830Asistentes || talleres1830Asistentes || {};
+  const talleres1730XIV = Object.keys(talleres1730Data).length;
+  const talleres1830XIV = Object.keys(talleres1830Data).length;
+  const totalTalleresXIV = talleres1730XIV + talleres1830XIV;
+  
+  // Añadir datos calculados al objeto
+  datosForoXIV.perfiles = perfilesXIV;
+  datosForoXIV.fuentes = fuentesXIV;
+  datosForoXIV.talleres1730 = talleres1730XIV;
+  datosForoXIV.talleres1830 = talleres1830XIV;
+  datosForoXIV.totalTalleres = totalTalleresXIV;
+  
   // Crear comparativa general
   createComparativaGeneral(datosForoXIII, datosForoXIV);
   createComparativaAsistencia(datosForoXIII, datosForoXIV);
   createComparativaValoraciones(datosForoXIII, datosForoXIV);
   createComparativaNPS(datosForoXIII, datosForoXIV);
+  createComparativaTalleres(datosForoXIII, datosForoXIV);
+  createComparativaPerfiles(datosForoXIII, datosForoXIV);
+  createComparativaFuentes(datosForoXIII, datosForoXIV);
 }
 
 // Función para crear la comparativa general
@@ -2199,6 +2738,15 @@ function createComparativaGeneral(xiii, xiv) {
   
   let html = `
     <div style="margin-top: 20px; padding: 28px; background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(247, 245, 246, 0.95) 100%); border-radius: 16px; border: 1px solid rgba(128, 24, 54, 0.12); box-shadow: 0 4px 16px rgba(128, 24, 54, 0.08);">
+      <div style="margin-bottom: 24px; padding-bottom: 20px; border-bottom: 2px solid rgba(128, 24, 54, 0.1);">
+        <h4 style="margin: 0 0 24px 0; color: #801836; font-size: 20px; font-weight: 700; display: flex; align-items: center; gap: 10px;">
+          <i class="fas fa-balance-scale" style="font-size: 22px;"></i>
+          Comparativa General de Métricas Clave
+        </h4>
+        <p style="font-size: 13px; color: #666; margin: 0; line-height: 1.5;">
+          Análisis de la evolución de las métricas más importantes entre el XIII y el XIV Foro de Innovación Educativa. Los indicadores de color (verde/rojo) muestran si hubo mejora o disminución respecto al año anterior.
+        </p>
+      </div>
       <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px;">
   `;
   
@@ -2389,6 +2937,196 @@ function createComparativaNPS(xiii, xiv) {
           <strong>${Math.abs(diferencia)} puntos</strong> 
           en el NPS respecto al año anterior.
         </div>
+      </div>
+    </div>
+  `;
+  
+  container.innerHTML = html;
+}
+
+// Función para crear la comparativa de talleres
+function createComparativaTalleres(xiii, xiv) {
+  const container = document.querySelector('#comparativa-talleres');
+  if (!container) return;
+  
+  const totalTalleresXIII = xiii.talleres1730 + xiii.talleres1830;
+  const diferencia = xiv.totalTalleres - totalTalleresXIII;
+  const esPositivo = diferencia >= 0;
+  const colorCambio = esPositivo ? '#28a745' : '#dc3545';
+  
+  let html = `
+    <div style="margin-top: 20px; padding: 28px; background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(247, 245, 246, 0.95) 100%); border-radius: 16px; border: 1px solid rgba(128, 24, 54, 0.12); box-shadow: 0 4px 16px rgba(128, 24, 54, 0.08);">
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 24px;">
+        <div>
+          <div style="font-size: 14px; font-weight: 700; color: #801836; margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
+            <i class="fas fa-calendar-alt" style="color: #801836;"></i>
+            ${xiii.nombre}
+          </div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+            <div style="text-align: center; padding: 16px; background: rgba(128, 24, 54, 0.05); border-radius: 8px;">
+              <div style="font-size: 32px; font-weight: 700; color: #801836; margin-bottom: 4px;">${xiii.talleres1730}</div>
+              <div style="font-size: 12px; color: #666;">Talleres 17:30</div>
+            </div>
+            <div style="text-align: center; padding: 16px; background: rgba(128, 24, 54, 0.05); border-radius: 8px;">
+              <div style="font-size: 32px; font-weight: 700; color: #801836; margin-bottom: 4px;">${xiii.talleres1830}</div>
+              <div style="font-size: 12px; color: #666;">Talleres 18:30</div>
+            </div>
+          </div>
+          <div style="text-align: center; padding: 16px; background: linear-gradient(135deg, rgba(128, 24, 54, 0.1) 0%, rgba(128, 24, 54, 0.05) 100%); border-radius: 8px; margin-top: 12px;">
+            <div style="font-size: 24px; font-weight: 700; color: #801836; margin-bottom: 4px;">${totalTalleresXIII}</div>
+            <div style="font-size: 12px; color: #666;">Total Talleres</div>
+          </div>
+        </div>
+        <div>
+          <div style="font-size: 14px; font-weight: 700; color: #28a745; margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
+            <i class="fas fa-calendar-check" style="color: #28a745;"></i>
+            ${xiv.nombre}
+          </div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+            <div style="text-align: center; padding: 16px; background: rgba(40, 167, 69, 0.05); border-radius: 8px;">
+              <div style="font-size: 32px; font-weight: 700; color: #28a745; margin-bottom: 4px;">${xiv.talleres1730}</div>
+              <div style="font-size: 12px; color: #666;">Talleres 17:30</div>
+            </div>
+            <div style="text-align: center; padding: 16px; background: rgba(40, 167, 69, 0.05); border-radius: 8px;">
+              <div style="font-size: 32px; font-weight: 700; color: #28a745; margin-bottom: 4px;">${xiv.talleres1830}</div>
+              <div style="font-size: 12px; color: #666;">Talleres 18:30</div>
+            </div>
+          </div>
+          <div style="text-align: center; padding: 16px; background: linear-gradient(135deg, rgba(40, 167, 69, 0.1) 0%, rgba(40, 167, 69, 0.05) 100%); border-radius: 8px; margin-top: 12px;">
+            <div style="font-size: 24px; font-weight: 700; color: #28a745; margin-bottom: 4px;">${xiv.totalTalleres}</div>
+            <div style="font-size: 12px; color: #666;">Total Talleres</div>
+          </div>
+        </div>
+      </div>
+      
+      <div style="padding: 16px; background: linear-gradient(135deg, rgba(${esPositivo ? '40, 167, 69' : '220, 53, 69'}, 0.1) 0%, rgba(${esPositivo ? '40, 167, 69' : '220, 53, 69'}, 0.05) 100%); border-radius: 12px; border-left: 4px solid ${colorCambio}; text-align: center;">
+        <div style="font-size: 13px; color: #666; line-height: 1.6;">
+          <strong style="color: ${colorCambio};">Variación:</strong> ${esPositivo ? 'Aumento' : 'Disminución'} de 
+          <strong>${Math.abs(diferencia)} talleres</strong> 
+          (${totalTalleresXIII > 0 ? ((diferencia / totalTalleresXIII) * 100).toFixed(1) : 0}%) respecto al año anterior.
+        </div>
+      </div>
+    </div>
+  `;
+  
+  container.innerHTML = html;
+}
+
+// Función para crear la comparativa de perfiles
+function createComparativaPerfiles(xiii, xiv) {
+  const container = document.querySelector('#comparativa-perfiles');
+  if (!container) return;
+  
+  // Normalizar perfiles para comparación
+  const perfilesUnicos = new Set([...Object.keys(xiii.perfiles || {}), ...Object.keys(xiv.perfiles || {})]);
+  const perfilesArray = Array.from(perfilesUnicos);
+  
+  let html = `
+    <div style="margin-top: 20px; padding: 28px; background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(247, 245, 246, 0.95) 100%); border-radius: 16px; border: 1px solid rgba(128, 24, 54, 0.12); box-shadow: 0 4px 16px rgba(128, 24, 54, 0.08);">
+      <div style="display: grid; gap: 16px;">
+  `;
+  
+  perfilesArray.forEach(perfil => {
+    const xiiiCount = xiii.perfiles[perfil] || 0;
+    const xivCount = xiv.perfiles[perfil] || 0;
+    const diferencia = xivCount - xiiiCount;
+    const esPositivo = diferencia >= 0;
+    const colorCambio = esPositivo ? '#28a745' : '#dc3545';
+    const maxCount = Math.max(xiiiCount, xivCount, 1);
+    
+    html += `
+      <div style="background: linear-gradient(135deg, rgba(255, 255, 255, 0.9) 0%, rgba(247, 245, 246, 0.9) 100%); padding: 16px; border-radius: 12px; border-left: 4px solid #801836; box-shadow: 0 2px 8px rgba(128, 24, 54, 0.08);">
+        <div style="font-size: 14px; font-weight: 700; color: #801836; margin-bottom: 12px;">${perfil}</div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+          <div style="text-align: center; padding: 12px; background: rgba(128, 24, 54, 0.05); border-radius: 8px;">
+            <div style="font-size: 11px; color: #666; margin-bottom: 4px;">XIII (${xiii.año})</div>
+            <div style="font-size: 20px; font-weight: 700; color: #801836;">${xiiiCount}</div>
+          </div>
+          <div style="text-align: center; padding: 12px; background: rgba(40, 167, 69, 0.05); border-radius: 8px;">
+            <div style="font-size: 11px; color: #666; margin-bottom: 4px;">XIV (${xiv.año})</div>
+            <div style="font-size: 20px; font-weight: 700; color: #28a745;">${xivCount}</div>
+          </div>
+          <div style="text-align: center; padding: 12px; background: linear-gradient(135deg, rgba(${esPositivo ? '40, 167, 69' : '220, 53, 69'}, 0.1) 0%, rgba(${esPositivo ? '40, 167, 69' : '220, 53, 69'}, 0.05) 100%); border-radius: 8px; border-left: 3px solid ${colorCambio};">
+            <div style="font-size: 11px; color: #666; margin-bottom: 4px;">Variación</div>
+            <div style="font-size: 16px; font-weight: 700; color: ${colorCambio};">
+              ${esPositivo ? '+' : ''}${diferencia}
+            </div>
+          </div>
+        </div>
+        <div style="display: flex; gap: 8px; align-items: center;">
+          <div style="flex: 1; height: 8px; background: rgba(128, 24, 54, 0.1); border-radius: 4px; overflow: hidden;">
+            <div style="height: 100%; width: ${(xiiiCount / maxCount) * 100}%; background: linear-gradient(135deg, #801836 0%, #9a1f42 100%); border-radius: 4px; transition: width 1s ease;"></div>
+          </div>
+          <div style="flex: 1; height: 8px; background: rgba(40, 167, 69, 0.1); border-radius: 4px; overflow: hidden;">
+            <div style="height: 100%; width: ${(xivCount / maxCount) * 100}%; background: linear-gradient(135deg, #28a745 0%, #20c997 100%); border-radius: 4px; transition: width 1s ease 0.2s;"></div>
+          </div>
+        </div>
+      </div>
+    `;
+  });
+  
+  html += `
+      </div>
+    </div>
+  `;
+  
+  container.innerHTML = html;
+}
+
+// Función para crear la comparativa de fuentes
+function createComparativaFuentes(xiii, xiv) {
+  const container = document.querySelector('#comparativa-fuentes');
+  if (!container) return;
+  
+  // Normalizar fuentes para comparación
+  const fuentesUnicas = new Set([...Object.keys(xiii.comoSeEnteraron || {}), ...Object.keys(xiv.fuentes || {})]);
+  const fuentesArray = Array.from(fuentesUnicas);
+  
+  let html = `
+    <div style="margin-top: 20px; padding: 28px; background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(247, 245, 246, 0.95) 100%); border-radius: 16px; border: 1px solid rgba(128, 24, 54, 0.12); box-shadow: 0 4px 16px rgba(128, 24, 54, 0.08);">
+      <div style="display: grid; gap: 16px;">
+  `;
+  
+  fuentesArray.forEach(fuente => {
+    const xiiiCount = xiii.comoSeEnteraron[fuente] || 0;
+    const xivCount = xiv.fuentes[fuente] || 0;
+    const diferencia = xivCount - xiiiCount;
+    const esPositivo = diferencia >= 0;
+    const colorCambio = esPositivo ? '#28a745' : '#dc3545';
+    const maxCount = Math.max(xiiiCount, xivCount, 1);
+    
+    html += `
+      <div style="background: linear-gradient(135deg, rgba(255, 255, 255, 0.9) 0%, rgba(247, 245, 246, 0.9) 100%); padding: 16px; border-radius: 12px; border-left: 4px solid #801836; box-shadow: 0 2px 8px rgba(128, 24, 54, 0.08);">
+        <div style="font-size: 14px; font-weight: 700; color: #801836; margin-bottom: 12px;">${fuente}</div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+          <div style="text-align: center; padding: 12px; background: rgba(128, 24, 54, 0.05); border-radius: 8px;">
+            <div style="font-size: 11px; color: #666; margin-bottom: 4px;">XIII (${xiii.año})</div>
+            <div style="font-size: 20px; font-weight: 700; color: #801836;">${xiiiCount}</div>
+          </div>
+          <div style="text-align: center; padding: 12px; background: rgba(40, 167, 69, 0.05); border-radius: 8px;">
+            <div style="font-size: 11px; color: #666; margin-bottom: 4px;">XIV (${xiv.año})</div>
+            <div style="font-size: 20px; font-weight: 700; color: #28a745;">${xivCount}</div>
+          </div>
+          <div style="text-align: center; padding: 12px; background: linear-gradient(135deg, rgba(${esPositivo ? '40, 167, 69' : '220, 53, 69'}, 0.1) 0%, rgba(${esPositivo ? '40, 167, 69' : '220, 53, 69'}, 0.05) 100%); border-radius: 8px; border-left: 3px solid ${colorCambio};">
+            <div style="font-size: 11px; color: #666; margin-bottom: 4px;">Variación</div>
+            <div style="font-size: 16px; font-weight: 700; color: ${colorCambio};">
+              ${esPositivo ? '+' : ''}${diferencia}
+            </div>
+          </div>
+        </div>
+        <div style="display: flex; gap: 8px; align-items: center;">
+          <div style="flex: 1; height: 8px; background: rgba(128, 24, 54, 0.1); border-radius: 4px; overflow: hidden;">
+            <div style="height: 100%; width: ${(xiiiCount / maxCount) * 100}%; background: linear-gradient(135deg, #801836 0%, #9a1f42 100%); border-radius: 4px; transition: width 1s ease;"></div>
+          </div>
+          <div style="flex: 1; height: 8px; background: rgba(40, 167, 69, 0.1); border-radius: 4px; overflow: hidden;">
+            <div style="height: 100%; width: ${(xivCount / maxCount) * 100}%; background: linear-gradient(135deg, #28a745 0%, #20c997 100%); border-radius: 4px; transition: width 1s ease 0.2s;"></div>
+          </div>
+        </div>
+      </div>
+    `;
+  });
+  
+  html += `
       </div>
     </div>
   `;

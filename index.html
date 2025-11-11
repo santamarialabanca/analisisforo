@@ -53,7 +53,7 @@
 
             <div class="metrics-grid">
                 <div class="metric-card">
-                    <i class="fas fa-user-check" style="font-size: 2rem; color: var(--granate); margin-bottom: gitpx; display: block;"></i>
+                    <i class="fas fa-user-check" style="font-size: 2rem; color: var(--granate); margin-bottom: 12px; display: block;"></i>
                     <div class="metric-value">300</div>
                     <div class="metric-label">Acreditados</div>
                 </div>
@@ -131,7 +131,17 @@
             <h2 class="section-title">Análisis de Talleres</h2>
             
             <div class="description-box">
-                <p>En cada sesión se ofrecieron múltiples talleres con distinta distribución de inscritos y asistentes. Puedes comparar la diferencia entre inscripciones y asistencias reales por taller en las tablas y gráficos de cada sesión.</p>
+                <p><strong>Distribución de talleres:</strong> En cada sesión se ofrecieron múltiples talleres con distinta distribución de asistentes. Los gráficos muestran el número de asistentes por taller, ordenados de mayor a menor participación. El resumen incluye métricas clave como el total de talleres, asistencias y el taller más popular.</p>
+            </div>
+
+            <div class="chart-container" id="resumen-talleres">
+                <h3>Resumen de Talleres</h3>
+                <div class="chart-wrapper" style="min-height: 200px;">
+                    <div class="loading">
+                        <i class="fas fa-chart-bar" style="font-size: 2rem; color: #801836; margin-bottom: 12px; display: block; opacity: 0.5;"></i>
+                        <p>Cargando resumen...</p>
+                    </div>
+                </div>
             </div>
 
             <div class="chart-container">
@@ -160,7 +170,17 @@
             <h2 class="section-title">Valoración y Satisfacción</h2>
             
             <div class="description-box">
-                <p>Las valoraciones recogidas reflejan una alta satisfacción, con promedios por encima de 4 sobre 5 en todos los apartados evaluados. Consulta los gráficos para ver la dispersión de puntuaciones.</p>
+                <p><strong>Análisis de satisfacción:</strong> Las valoraciones recogidas reflejan el nivel de satisfacción de los participantes. El resumen muestra la valoración media del foro, la charla inspiracional y los porcentajes de satisfacción (4-5 estrellas). Los gráficos detallados muestran la distribución de puntuaciones y las valoraciones por taller con desglose de puntuaciones individuales.</p>
+            </div>
+
+            <div class="chart-container" id="resumen-valoracion">
+                <h3>Resumen de Valoraciones</h3>
+                <div class="chart-wrapper" style="min-height: 200px;">
+                    <div class="loading">
+                        <i class="fas fa-star" style="font-size: 2rem; color: #801836; margin-bottom: 12px; display: block; opacity: 0.5;"></i>
+                        <p>Cargando resumen...</p>
+                    </div>
+                </div>
             </div>
 
             <div class="chart-container">
@@ -301,7 +321,7 @@
             <h2 class="section-title">Listado de No Asistentes</h2>
             
             <div class="description-box">
-                <p>Personas que se inscribieron o fueron acreditadas pero no asistieron al evento (sin talleres registrados).</p>
+                <p><strong>Análisis de ausencias:</strong> Personas que se inscribieron o fueron acreditadas pero no asistieron al evento (sin talleres registrados). Este análisis ayuda a identificar patrones de asistencia y posibles áreas de mejora en la comunicación o logística. Puedes filtrar por tipo de docente e institución.</p>
             </div>
 
             <div class="chart-container">
@@ -343,7 +363,7 @@
             <h2 class="section-title">Balance y Análisis de Datos</h2>
             
             <div class="description-box">
-                <p>Comparativa entre el XIII Foro de Innovación Educativa (2024) y el XIV Foro de Innovación Educativa - HUMANIA (2025).</p>
+                <p><strong>Comparativa interanual:</strong> Análisis comparativo entre el XIII Foro de Innovación Educativa (2024) y el XIV Foro de Innovación Educativa - HUMANIA (2025). Las gráficas muestran la evolución de las métricas clave, incluyendo asistencia, valoraciones, NPS, talleres, perfiles y fuentes de información. Los indicadores de color (verde/rojo) muestran si hubo mejora o disminución respecto al año anterior.</p>
             </div>
 
             <div class="chart-container">
@@ -382,6 +402,36 @@
                     <div class="loading">
                         <i class="fas fa-chart-line" style="font-size: 2rem; color: #801836; margin-bottom: 12px; display: block; opacity: 0.5;"></i>
                         <p>Cargando comparativa de NPS...</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="chart-container">
+                <h3>Comparativa de Talleres</h3>
+                <div class="chart-wrapper" id="comparativa-talleres" style="min-height: 300px;">
+                    <div class="loading">
+                        <i class="fas fa-users" style="font-size: 2rem; color: #801836; margin-bottom: 12px; display: block; opacity: 0.5;"></i>
+                        <p>Cargando comparativa de talleres...</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="chart-container">
+                <h3>Comparativa de Perfiles</h3>
+                <div class="chart-wrapper" id="comparativa-perfiles" style="min-height: 300px;">
+                    <div class="loading">
+                        <i class="fas fa-user-tag" style="font-size: 2rem; color: #801836; margin-bottom: 12px; display: block; opacity: 0.5;"></i>
+                        <p>Cargando comparativa de perfiles...</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="chart-container">
+                <h3>Comparativa de Fuentes de Información</h3>
+                <div class="chart-wrapper" id="comparativa-fuentes" style="min-height: 300px;">
+                    <div class="loading">
+                        <i class="fas fa-bullhorn" style="font-size: 2rem; color: #801836; margin-bottom: 12px; display: block; opacity: 0.5;"></i>
+                        <p>Cargando comparativa de fuentes...</p>
                     </div>
                 </div>
             </div>
