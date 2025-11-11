@@ -54,6 +54,30 @@ function showSection(sectionId) {
     }, 150);
   }
   
+  if (sectionId === 'asistentes') {
+    setTimeout(() => {
+      if (asistenciaData && asistenciaData.length > 0) {
+        createAsistentesList();
+      }
+    }, 150);
+  }
+  
+  if (sectionId === 'no-asistentes') {
+    setTimeout(() => {
+      if ((inscripcionesData && inscripcionesData.length > 0) || (acreditacionesData && acreditacionesData.length > 0)) {
+        createNoAsistentesList();
+      }
+    }, 150);
+  }
+  
+  if (sectionId === 'balance') {
+    setTimeout(() => {
+      if (acreditacionesData && acreditacionesData.length > 0 && respuestasData && respuestasData.length > 0) {
+        createComparativaForos();
+      }
+    }, 150);
+  }
+  
   // Scroll suave al inicio
   window.scrollTo({
     top: 0,
@@ -134,6 +158,7 @@ function parseCSVLine(line) {
 let acreditacionesData = [];
 let asistenciaData = [];
 let respuestasData = [];
+let inscripcionesData = [];
 
 async function loadData() {
   // Mostrar indicador de carga
@@ -143,7 +168,7 @@ async function loadData() {
   }
   
   try {
-    const [acreditaciones, asistencia, respuestas] = await Promise.all([
+    const [acreditaciones, asistencia, respuestas, inscripciones] = await Promise.all([
       fetch('CSV - Acreditaciones.csv').then(r => {
         if (!r.ok) throw new Error(`Error al cargar Acreditaciones: ${r.status}`);
         return r.text();
@@ -155,12 +180,24 @@ async function loadData() {
       fetch('XIV Foro de Innovación Educativa (respuestas) - Respuestas de formulario 1.csv').then(r => {
         if (!r.ok) throw new Error(`Error al cargar Respuestas: ${r.status}`);
         return r.text();
+      }),
+      fetch('XIV Foro Innovación Educativa - HUMANIA_ Asistentes (respuestas) - Respuestas de formulario 1 (4).csv').then(r => {
+        if (!r.ok) {
+          console.warn('No se pudo cargar el archivo de Inscripciones, continuando sin él');
+          return '';
+        }
+        return r.text();
       })
     ]);
     
     acreditacionesData = parseCSV(acreditaciones);
     asistenciaData = parseCSV(asistencia);
     respuestasData = parseCSV(respuestas);
+    if (inscripciones) {
+      inscripcionesData = parseCSV(inscripciones);
+      // Filtrar filas vacías
+      inscripcionesData = inscripcionesData.filter(row => row.Nombre && row.Nombre.trim());
+    }
     
     // Validar que los datos no estén vacíos
     if (!acreditacionesData || acreditacionesData.length === 0) {
@@ -401,6 +438,19 @@ function updateCharts() {
   createSourceChart(comoSeEnteraron);
   createCharlaChart(valoracionCharla);
   createWorkshopRatings(); // Calcula y muestra las valoraciones de talleres
+  createNPSChart(); // Calcula y muestra el NPS
+  
+  // Análisis de inscripciones si hay datos disponibles
+  if (inscripcionesData && inscripcionesData.length > 0) {
+    createInscripcionesAnalysis();
+  }
+  
+  // Listado de asistentes y no asistentes
+  createAsistentesList();
+  createNoAsistentesList();
+  
+  // Comparativa con Foro XIII
+  createComparativaForos();
 }
 
 function createRoleChart(rolesAcreditados, rolesAsistentes) {
@@ -482,6 +532,67 @@ function createRoleChart(rolesAcreditados, rolesAsistentes) {
       });
     }, 100);
   }
+}
+
+// Función para identificar si un email pertenece a un docente del colegio
+function esDocenteColegio(email) {
+  if (!email) return false;
+  return email.toLowerCase().includes('@p.csmb');
+}
+
+// Función para normalizar nombres de instituciones (unificar variaciones)
+// Si la institución está vacía pero el email es @p.csmb, devuelve "CSMB"
+function normalizarInstitucion(institucion, email = null) {
+  // Si la institución está vacía pero el email es @p.csmb, asignar CSMB
+  if ((!institucion || !institucion.trim()) && email && esDocenteColegio(email)) {
+    return 'CSMB';
+  }
+  
+  if (!institucion || !institucion.trim()) return '';
+  
+  // Normalizar: quitar acentos, convertir a minúsculas, quitar espacios extra
+  let normalizado = institucion
+    .toLowerCase()
+    .trim()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '') // Quitar acentos
+    .replace(/\s+/g, ' ') // Normalizar espacios
+    .replace(/[.,\-_]/g, '') // Quitar puntuación
+    .trim();
+  
+  // Unificar variaciones de CSMB/Camb
+  if (normalizado === 'csmb' || 
+      normalizado === 'smb' || 
+      normalizado === 's m b' ||
+      normalizado === 'camb') {
+    return 'CSMB';
+  }
+  
+  // Unificar variaciones de Colegio Santa María la Blanca
+  // Incluye: "Sta. María La Blanca", "Escuelita", "Secundaria", "Eso", "Santa Mª La Blanca", "Docente", etc.
+  if (normalizado.includes('santa maria la blanca') || 
+      normalizado.includes('santamarialablanca') ||
+      normalizado.includes('sta maria la blanca') ||
+      normalizado.includes('sta maria') ||
+      normalizado.includes('santa m la blanca') ||
+      normalizado.includes('santa mª la blanca') ||
+      normalizado.includes('santa m. la blanca') ||
+      normalizado === 'escuelita' ||
+      normalizado === 'secundaria' ||
+      normalizado === 'eso' ||
+      normalizado === 'docente' ||
+      normalizado.includes('santa maria') && normalizado.includes('blanca') ||
+      normalizado.includes('santa m') && normalizado.includes('blanca')) {
+    // Todas estas variaciones van a "Colegio Santa María la Blanca"
+    return 'Colegio Santa María la Blanca';
+  }
+  
+  // Si no coincide con ninguna variación conocida, devolver el original
+  // pero con capitalización apropiada (primera letra de cada palabra en mayúscula)
+  return institucion.trim()
+    .split(' ')
+    .map(palabra => palabra.charAt(0).toUpperCase() + palabra.slice(1).toLowerCase())
+    .join(' ');
 }
 
 function extractTallerName(tallerText) {
@@ -1128,6 +1239,1641 @@ function createSourceChart(fuentes) {
       });
     }, 100);
   }
+}
+
+// Función para analizar datos de inscripciones
+function createInscripcionesAnalysis() {
+  const container = document.querySelector('#inscripciones-analysis');
+  if (!container) return;
+  
+  container.style.display = 'block';
+  const wrapper = container.querySelector('.chart-wrapper');
+  if (!wrapper) return;
+  
+  // Análisis de perfiles de inscripción
+  const perfilesInscripcion = {};
+  const estadosInscripcion = {};
+  const instituciones = {};
+  const inscripcionesPorFecha = {};
+  const talleresPorPerfil = {};
+  const comunicacionDigital = { acepta: 0, noAcepta: 0 };
+  
+  // Mapa para cruzar datos: email -> datos de inscripción
+  const inscripcionesPorEmail = {};
+  
+  inscripcionesData.forEach(row => {
+    // Perfil
+    const perfil = row['Me inscribo como']?.trim() || 'Sin especificar';
+    perfilesInscripcion[perfil] = (perfilesInscripcion[perfil] || 0) + 1;
+    
+    // Estado
+    const estado = row.Estado?.trim() || 'Sin especificar';
+    estadosInscripcion[estado] = (estadosInscripcion[estado] || 0) + 1;
+    
+    // Guardar datos por email para cruzar con asistencia
+    const email = row.Email?.trim()?.toLowerCase();
+    
+    // Institución (normalizada) - usar email si la institución está vacía
+    const institucion = row['Institución a la que perteneces']?.trim();
+    const institucionNormalizada = normalizarInstitucion(institucion, email);
+    if (institucionNormalizada && institucionNormalizada !== '') {
+      instituciones[institucionNormalizada] = (instituciones[institucionNormalizada] || 0) + 1;
+    }
+    
+    if (email) {
+      inscripcionesPorEmail[email] = {
+        perfil: perfil,
+        institucion: institucionNormalizada || '',
+        estado: estado,
+        nombre: `${row.Nombre || ''} ${row.Apellidos || ''}`.trim()
+      };
+    }
+    
+    // Fecha de inscripción
+    const fecha = row['Fecha de inscripción']?.trim();
+    if (fecha) {
+      inscripcionesPorFecha[fecha] = (inscripcionesPorFecha[fecha] || 0) + 1;
+    }
+    
+    // Talleres por perfil
+    const taller1730 = row['¿En qué taller quiero apuntarme a las 17:30 – 18:15 h?']?.trim();
+    const taller1830 = row['¿En qué taller quiero apuntarme a las 18:30 – 19:15 h?']?.trim();
+    
+    if (taller1730 && taller1730 !== '') {
+      if (!talleresPorPerfil[perfil]) talleresPorPerfil[perfil] = {};
+      const nombreTaller = extractTallerName(taller1730);
+      talleresPorPerfil[perfil][nombreTaller] = (talleresPorPerfil[perfil][nombreTaller] || 0) + 1;
+    }
+    if (taller1830 && taller1830 !== '') {
+      if (!talleresPorPerfil[perfil]) talleresPorPerfil[perfil] = {};
+      const nombreTaller = extractTallerName(taller1830);
+      talleresPorPerfil[perfil][nombreTaller] = (talleresPorPerfil[perfil][nombreTaller] || 0) + 1;
+    }
+    
+    // Comunicación digital
+    const comDigital = row['Comunicación digital']?.trim();
+    if (comDigital && comDigital.includes('interesado')) {
+      comunicacionDigital.acepta++;
+    } else {
+      comunicacionDigital.noAcepta++;
+    }
+  });
+  
+  // Cruzar datos: Inscritos vs Asistentes
+  const analisisCruzado = {
+    porPerfil: {},
+    porRol: {},
+    porInstitucion: {},
+    porTipoDocente: {
+      docentesColegio: { inscritos: 0, acreditados: 0, asistentes: 0 },
+      docentesExternos: { inscritos: 0, acreditados: 0, asistentes: 0 },
+      noDocentes: { inscritos: 0, acreditados: 0, asistentes: 0 }
+    },
+    totalInscritos: inscripcionesData.length,
+    totalAsistentes: 0,
+    totalAcreditados: acreditacionesData.length
+  };
+  
+  // Mapa de emails de acreditaciones y asistencia para cruzar
+  const acreditadosPorEmail = {};
+  const asistentesPorEmail = {};
+  
+  // Procesar acreditaciones
+  acreditacionesData.forEach(row => {
+    const email = row.Email?.trim()?.toLowerCase();
+    const rol = row.Rol?.trim() || 'Sin especificar';
+    
+    if (!analisisCruzado.porRol[rol]) {
+      analisisCruzado.porRol[rol] = { acreditados: 0, asistentes: 0, inscritos: 0 };
+    }
+    analisisCruzado.porRol[rol].acreditados++;
+    
+    if (email) {
+      acreditadosPorEmail[email] = { rol: rol };
+    }
+  });
+  
+  // Procesar asistencia (solo con talleres)
+  const asistenciaConTalleres = asistenciaData.filter(row => {
+    const taller1730 = row['17:30']?.trim();
+    const taller1830 = row['18:30']?.trim();
+    return (taller1730 && taller1730 !== '' && taller1730 !== 'Primera sesión') ||
+           (taller1830 && taller1830 !== '' && taller1830 !== 'Segunda sesión');
+  });
+  
+  asistenciaConTalleres.forEach(row => {
+    const email = row.Email?.trim()?.toLowerCase();
+    const rol = row.Rol?.trim() || 'Sin especificar';
+    
+    analisisCruzado.totalAsistentes++;
+    
+    if (!analisisCruzado.porRol[rol]) {
+      analisisCruzado.porRol[rol] = { acreditados: 0, asistentes: 0, inscritos: 0 };
+    }
+    analisisCruzado.porRol[rol].asistentes++;
+    
+    if (email) {
+      asistentesPorEmail[email] = { rol: rol };
+    }
+  });
+  
+  // Procesar inscripciones y cruzar con acreditaciones y asistencia
+  inscripcionesData.forEach(row => {
+    const email = row.Email?.trim()?.toLowerCase();
+    const perfil = row['Me inscribo como']?.trim() || 'Sin especificar';
+    const institucion = row['Institución a la que perteneces']?.trim();
+    const institucionNormalizada = normalizarInstitucion(institucion, email);
+    const esDocente = esDocenteColegio(email);
+    const esDocentePerfil = perfil.toLowerCase().includes('docente') || perfil.toLowerCase().includes('profesor');
+    
+    // Identificar tipo de docente
+    let tipoDocente = 'noDocentes';
+    if (esDocente) {
+      tipoDocente = 'docentesColegio';
+    } else if (esDocentePerfil) {
+      tipoDocente = 'docentesExternos';
+    }
+    
+    // Contar por tipo de docente
+    analisisCruzado.porTipoDocente[tipoDocente].inscritos++;
+    if (email && acreditadosPorEmail[email]) {
+      analisisCruzado.porTipoDocente[tipoDocente].acreditados++;
+    }
+    if (email && asistentesPorEmail[email]) {
+      analisisCruzado.porTipoDocente[tipoDocente].asistentes++;
+    }
+    
+    // Contar por perfil
+    if (!analisisCruzado.porPerfil[perfil]) {
+      analisisCruzado.porPerfil[perfil] = { inscritos: 0, acreditados: 0, asistentes: 0, docentesColegio: 0 };
+    }
+    analisisCruzado.porPerfil[perfil].inscritos++;
+    if (esDocente) {
+      analisisCruzado.porPerfil[perfil].docentesColegio++;
+    }
+    
+    // Verificar si está acreditado
+    if (email && acreditadosPorEmail[email]) {
+      analisisCruzado.porPerfil[perfil].acreditados++;
+    }
+    
+    // Verificar si asistió
+    if (email && asistentesPorEmail[email]) {
+      analisisCruzado.porPerfil[perfil].asistentes++;
+    }
+    
+    // Contar por institución
+    if (institucionNormalizada) {
+      if (!analisisCruzado.porInstitucion[institucionNormalizada]) {
+        analisisCruzado.porInstitucion[institucionNormalizada] = { inscritos: 0, acreditados: 0, asistentes: 0, docentesColegio: 0 };
+      }
+      analisisCruzado.porInstitucion[institucionNormalizada].inscritos++;
+      if (esDocente) {
+        analisisCruzado.porInstitucion[institucionNormalizada].docentesColegio++;
+      }
+      
+      if (email && acreditadosPorEmail[email]) {
+        analisisCruzado.porInstitucion[institucionNormalizada].acreditados++;
+      }
+      
+      if (email && asistentesPorEmail[email]) {
+        analisisCruzado.porInstitucion[institucionNormalizada].asistentes++;
+      }
+    }
+    
+    // Contar inscritos por rol (si está en acreditaciones)
+    if (email && acreditadosPorEmail[email]) {
+      const rol = acreditadosPorEmail[email].rol;
+      analisisCruzado.porRol[rol].inscritos++;
+    }
+  });
+  
+  const totalInscripciones = inscripcionesData.length;
+  const perfilesOrdenados = Object.entries(perfilesInscripcion).sort((a, b) => b[1] - a[1]);
+  const estadosOrdenados = Object.entries(estadosInscripcion).sort((a, b) => b[1] - a[1]);
+  // Las instituciones ya están normalizadas (usando normalizarInstitucion) en el procesamiento anterior
+  // Esto unifica: "Sta. María La Blanca", "Escuelita", "Secundaria", "ESO" → "Colegio Santa María la Blanca"
+  // Y "Camb" → "CSMB"
+  const institucionesOrdenadas = Object.entries(instituciones).sort((a, b) => b[1] - a[1]).slice(0, 10);
+  const fechasOrdenadas = Object.entries(inscripcionesPorFecha).sort((a, b) => a[0].localeCompare(b[0]));
+  
+  const colors = ['#801836', '#9a1f42', '#b4284e', '#ce315a', '#e83966'];
+  
+  let html = `
+    <div style="margin-top: 20px; padding: 28px; background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(247, 245, 246, 0.95) 100%); border-radius: 16px; border: 1px solid rgba(128, 24, 54, 0.12); box-shadow: 0 4px 16px rgba(128, 24, 54, 0.08);">
+      <h4 style="margin: 0 0 24px 0; color: #801836; font-size: 20px; font-weight: 700; display: flex; align-items: center; gap: 10px;">
+        <i class="fas fa-user-plus" style="font-size: 22px;"></i>
+        Análisis de Inscripciones (${totalInscripciones} total)
+      </h4>
+      
+      <!-- Distribución por Perfil -->
+      <div style="margin-bottom: 32px;">
+        <h5 style="color: #801836; font-size: 16px; font-weight: 700; margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
+          <i class="fas fa-users" style="font-size: 16px;"></i>
+          Distribución por Perfil de Inscripción
+        </h5>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;">
+  `;
+  
+  perfilesOrdenados.forEach(([perfil, count], index) => {
+    const porcentaje = totalInscripciones > 0 ? ((count / totalInscripciones) * 100).toFixed(1) : 0;
+    const color = colors[index % colors.length];
+    
+    html += `
+      <div style="background: linear-gradient(135deg, rgba(255, 255, 255, 0.9) 0%, rgba(247, 245, 246, 0.9) 100%); padding: 20px; border-radius: 12px; border-left: 4px solid ${color}; box-shadow: 0 2px 8px rgba(128, 24, 54, 0.08); transition: all 0.3s;" onmouseover="this.style.transform='translateY(-3px)'; this.style.boxShadow='0 4px 12px rgba(128, 24, 54, 0.15)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 2px 8px rgba(128, 24, 54, 0.08)'">
+        <div style="font-size: 13px; color: #666; margin-bottom: 8px;">${perfil}</div>
+        <div style="font-size: 28px; font-weight: 700; color: ${color}; margin-bottom: 4px;">${count}</div>
+        <div style="font-size: 12px; color: #666;">${porcentaje}%</div>
+      </div>
+    `;
+  });
+  
+  html += `
+        </div>
+      </div>
+      
+      <!-- Estados de Inscripción -->
+      <div style="margin-bottom: 32px; padding-top: 24px; border-top: 2px solid rgba(128, 24, 54, 0.1);">
+        <h5 style="color: #801836; font-size: 16px; font-weight: 700; margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
+          <i class="fas fa-check-circle" style="font-size: 16px;"></i>
+          Estados de Inscripción
+        </h5>
+        <div style="display: flex; gap: 20px; flex-wrap: wrap;">
+  `;
+  
+  estadosOrdenados.forEach(([estado, count], index) => {
+    const porcentaje = totalInscripciones > 0 ? ((count / totalInscripciones) * 100).toFixed(1) : 0;
+    const color = estado === 'Confirmado' ? '#28a745' : estado === 'Lista de Espera' ? '#ffc107' : colors[index % colors.length];
+    
+    html += `
+      <div style="flex: 1; min-width: 150px; background: linear-gradient(135deg, rgba(255, 255, 255, 0.9) 0%, rgba(247, 245, 246, 0.9) 100%); padding: 18px; border-radius: 12px; border: 2px solid ${color}; text-align: center; box-shadow: 0 2px 8px rgba(128, 24, 54, 0.08);">
+        <div style="font-size: 24px; font-weight: 700; color: ${color}; margin-bottom: 8px;">${count}</div>
+        <div style="font-size: 13px; color: #666; margin-bottom: 4px;">${estado}</div>
+        <div style="font-size: 11px; color: #999;">${porcentaje}%</div>
+      </div>
+    `;
+  });
+  
+  html += `
+        </div>
+      </div>
+      
+      <!-- Comunicación Digital -->
+      <div style="margin-bottom: 32px; padding-top: 24px; border-top: 2px solid rgba(128, 24, 54, 0.1);">
+        <h5 style="color: #801836; font-size: 16px; font-weight: 700; margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
+          <i class="fas fa-envelope" style="font-size: 16px;"></i>
+          Interés en Comunicación Digital
+        </h5>
+        <div style="display: flex; gap: 20px;">
+          <div style="flex: 1; background: linear-gradient(135deg, rgba(40, 167, 69, 0.1) 0%, rgba(40, 167, 69, 0.05) 100%); padding: 20px; border-radius: 12px; border-left: 4px solid #28a745; text-align: center;">
+            <div style="font-size: 32px; font-weight: 700; color: #28a745; margin-bottom: 8px;">${comunicacionDigital.acepta}</div>
+            <div style="font-size: 14px; color: #666;">Interesados en recibir comunicaciones</div>
+            <div style="font-size: 12px; color: #999; margin-top: 4px;">${totalInscripciones > 0 ? ((comunicacionDigital.acepta / totalInscripciones) * 100).toFixed(1) : 0}%</div>
+          </div>
+          <div style="flex: 1; background: linear-gradient(135deg, rgba(128, 24, 54, 0.1) 0%, rgba(128, 24, 54, 0.05) 100%); padding: 20px; border-radius: 12px; border-left: 4px solid #801836; text-align: center;">
+            <div style="font-size: 32px; font-weight: 700; color: #801836; margin-bottom: 8px;">${comunicacionDigital.noAcepta}</div>
+            <div style="font-size: 14px; color: #666;">No interesados</div>
+            <div style="font-size: 12px; color: #999; margin-top: 4px;">${totalInscripciones > 0 ? ((comunicacionDigital.noAcepta / totalInscripciones) * 100).toFixed(1) : 0}%</div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Top Instituciones -->
+      <div style="margin-bottom: 32px; padding-top: 24px; border-top: 2px solid rgba(128, 24, 54, 0.1);">
+        <h5 style="color: #801836; font-size: 16px; font-weight: 700; margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
+          <i class="fas fa-building" style="font-size: 16px;"></i>
+          Top 10 Instituciones Más Representadas
+        </h5>
+        <div style="display: flex; flex-direction: column; gap: 12px;">
+  `;
+  
+  institucionesOrdenadas.forEach(([institucion, count], index) => {
+    const porcentaje = totalInscripciones > 0 ? ((count / totalInscripciones) * 100).toFixed(1) : 0;
+    const maxCount = Math.max(...institucionesOrdenadas.map(([_, c]) => c), 1);
+    const porcentajeBarra = (count / maxCount) * 100;
+    const color = colors[index % colors.length];
+    
+    html += `
+      <div style="background: rgba(247, 245, 246, 0.8); padding: 14px; border-radius: 10px; border-left: 4px solid ${color}; display: flex; align-items: center; gap: 16px;">
+        <div style="flex: 1; min-width: 0;">
+          <div style="font-weight: 600; color: #1a1a1a; font-size: 14px; margin-bottom: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${institucion}</div>
+          <div style="height: 8px; background: rgba(128, 24, 54, 0.1); border-radius: 4px; overflow: hidden;">
+            <div style="height: 100%; width: 0%; background: linear-gradient(135deg, ${color} 0%, #801836 100%); border-radius: 4px; transition: width 1s ease ${index * 0.1}s;" data-width="${porcentajeBarra}"></div>
+          </div>
+        </div>
+        <div style="flex: 0 0 80px; text-align: right;">
+          <div style="font-size: 18px; font-weight: 700; color: ${color};">${count}</div>
+          <div style="font-size: 11px; color: #666;">${porcentaje}%</div>
+        </div>
+      </div>
+    `;
+  });
+  
+  html += `
+        </div>
+      </div>
+      
+      <!-- Análisis Cruzado: Inscritos vs Asistentes por Perfil -->
+      <div style="margin-bottom: 32px; padding-top: 24px; border-top: 2px solid rgba(128, 24, 54, 0.1);">
+        <h5 style="color: #801836; font-size: 16px; font-weight: 700; margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
+          <i class="fas fa-exchange-alt" style="font-size: 16px;"></i>
+          Análisis Cruzado: Inscritos vs Asistentes por Perfil
+        </h5>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 16px;">
+  `;
+  
+  const perfilesCruzados = Object.entries(analisisCruzado.porPerfil).sort((a, b) => b[1].inscritos - a[1].inscritos);
+  perfilesCruzados.forEach(([perfil, datos], index) => {
+    const tasaAsistencia = datos.inscritos > 0 ? ((datos.asistentes / datos.inscritos) * 100).toFixed(1) : 0;
+    const tasaAcreditacion = datos.inscritos > 0 ? ((datos.acreditados / datos.inscritos) * 100).toFixed(1) : 0;
+    const color = colors[index % colors.length];
+    const docentesColegioCount = datos.docentesColegio || 0;
+    const badgeDocentes = docentesColegioCount > 0 ? `<span style="background: linear-gradient(135deg, #801836 0%, #9a1f42 100%); color: white; padding: 2px 8px; border-radius: 12px; font-size: 10px; font-weight: 700; margin-left: 8px;" title="${docentesColegioCount} docentes del colegio">🏫 ${docentesColegioCount}</span>` : '';
+    
+    html += `
+      <div style="background: linear-gradient(135deg, rgba(255, 255, 255, 0.9) 0%, rgba(247, 245, 246, 0.9) 100%); padding: 20px; border-radius: 12px; border-left: 4px solid ${color}; box-shadow: 0 2px 8px rgba(128, 24, 54, 0.08); transition: all 0.3s;" onmouseover="this.style.transform='translateY(-3px)'; this.style.boxShadow='0 4px 12px rgba(128, 24, 54, 0.15)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 2px 8px rgba(128, 24, 54, 0.08)'">
+        <div style="font-size: 15px; font-weight: 700; color: #801836; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+          <i class="fas fa-user" style="font-size: 16px; color: ${color};"></i>
+          <span>${perfil}</span>
+          ${badgeDocentes}
+        </div>
+        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 12px;">
+          <div style="text-align: center; padding: 12px; background: linear-gradient(135deg, rgba(255, 193, 7, 0.15) 0%, rgba(255, 193, 7, 0.08) 100%); border-radius: 8px; border: 1px solid rgba(255, 193, 7, 0.3);">
+            <div style="font-size: 10px; color: #666; margin-bottom: 4px; font-weight: 600;">Inscritos</div>
+            <div style="font-size: 22px; font-weight: 700; color: #ffc107;">${datos.inscritos}</div>
+          </div>
+          <div style="text-align: center; padding: 12px; background: linear-gradient(135deg, rgba(128, 24, 54, 0.15) 0%, rgba(128, 24, 54, 0.08) 100%); border-radius: 8px; border: 1px solid rgba(128, 24, 54, 0.3);">
+            <div style="font-size: 10px; color: #666; margin-bottom: 4px; font-weight: 600;">Acreditados</div>
+            <div style="font-size: 22px; font-weight: 700; color: #801836;">${datos.acreditados}</div>
+          </div>
+          <div style="text-align: center; padding: 12px; background: linear-gradient(135deg, rgba(40, 167, 69, 0.15) 0%, rgba(40, 167, 69, 0.08) 100%); border-radius: 8px; border: 1px solid rgba(40, 167, 69, 0.3);">
+            <div style="font-size: 10px; color: #666; margin-bottom: 4px; font-weight: 600;">Asistentes</div>
+            <div style="font-size: 22px; font-weight: 700; color: #28a745;">${datos.asistentes}</div>
+          </div>
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+          <div style="text-align: center; padding: 10px; background: linear-gradient(135deg, rgba(128, 24, 54, 0.1) 0%, rgba(128, 24, 54, 0.05) 100%); border-radius: 8px;">
+            <div style="font-size: 10px; color: #666; margin-bottom: 4px;">Tasa Acreditación</div>
+            <div style="font-size: 16px; font-weight: 700; color: #801836;">${tasaAcreditacion}%</div>
+          </div>
+          <div style="text-align: center; padding: 10px; background: linear-gradient(135deg, rgba(40, 167, 69, 0.1) 0%, rgba(40, 167, 69, 0.05) 100%); border-radius: 8px;">
+            <div style="font-size: 10px; color: #666; margin-bottom: 4px;">Tasa Asistencia</div>
+            <div style="font-size: 16px; font-weight: 700; color: ${parseFloat(tasaAsistencia) >= 80 ? '#28a745' : parseFloat(tasaAsistencia) >= 60 ? '#ffc107' : '#dc3545'};">${tasaAsistencia}%</div>
+          </div>
+        </div>
+      </div>
+    `;
+  });
+  
+  html += `
+        </div>
+      </div>
+      
+      <!-- Análisis Cruzado: Inscritos vs Asistentes por Rol -->
+      <div style="margin-bottom: 32px; padding-top: 24px; border-top: 2px solid rgba(128, 24, 54, 0.1);">
+        <h5 style="color: #801836; font-size: 16px; font-weight: 700; margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
+          <i class="fas fa-user-tag" style="font-size: 16px;"></i>
+          Análisis Cruzado: Inscritos vs Asistentes por Rol
+        </h5>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 16px;">
+  `;
+  
+  const rolesCruzados = Object.entries(analisisCruzado.porRol).sort((a, b) => b[1].acreditados - a[1].acreditados);
+  rolesCruzados.forEach(([rol, datos], index) => {
+    const tasaAsistencia = datos.acreditados > 0 ? ((datos.asistentes / datos.acreditados) * 100).toFixed(1) : 0;
+    const tasaInscripcion = datos.acreditados > 0 ? ((datos.inscritos / datos.acreditados) * 100).toFixed(1) : 0;
+    const color = colors[index % colors.length];
+    const icon = rol === 'STAFF' ? 'fa-user-tie' : 'fa-user-friends';
+    
+    html += `
+      <div style="background: linear-gradient(135deg, rgba(255, 255, 255, 0.9) 0%, rgba(247, 245, 246, 0.9) 100%); padding: 20px; border-radius: 12px; border-left: 4px solid ${color}; box-shadow: 0 2px 8px rgba(128, 24, 54, 0.08); transition: all 0.3s;" onmouseover="this.style.transform='translateY(-3px)'; this.style.boxShadow='0 4px 12px rgba(128, 24, 54, 0.15)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 2px 8px rgba(128, 24, 54, 0.08)'">
+        <div style="font-size: 15px; font-weight: 700; color: #801836; margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
+          <i class="fas ${icon}" style="font-size: 16px; color: ${color};"></i>
+          ${rol}
+        </div>
+        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 12px;">
+          <div style="text-align: center; padding: 12px; background: linear-gradient(135deg, rgba(128, 24, 54, 0.15) 0%, rgba(128, 24, 54, 0.08) 100%); border-radius: 8px; border: 1px solid rgba(128, 24, 54, 0.3);">
+            <div style="font-size: 10px; color: #666; margin-bottom: 4px; font-weight: 600;">Acreditados</div>
+            <div style="font-size: 22px; font-weight: 700; color: #801836;">${datos.acreditados}</div>
+          </div>
+          <div style="text-align: center; padding: 12px; background: linear-gradient(135deg, rgba(40, 167, 69, 0.15) 0%, rgba(40, 167, 69, 0.08) 100%); border-radius: 8px; border: 1px solid rgba(40, 167, 69, 0.3);">
+            <div style="font-size: 10px; color: #666; margin-bottom: 4px; font-weight: 600;">Asistentes</div>
+            <div style="font-size: 22px; font-weight: 700; color: #28a745;">${datos.asistentes}</div>
+          </div>
+          <div style="text-align: center; padding: 12px; background: linear-gradient(135deg, rgba(255, 193, 7, 0.15) 0%, rgba(255, 193, 7, 0.08) 100%); border-radius: 8px; border: 1px solid rgba(255, 193, 7, 0.3);">
+            <div style="font-size: 10px; color: #666; margin-bottom: 4px; font-weight: 600;">Inscritos</div>
+            <div style="font-size: 22px; font-weight: 700; color: #ffc107;">${datos.inscritos}</div>
+          </div>
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+          <div style="text-align: center; padding: 10px; background: linear-gradient(135deg, rgba(255, 193, 7, 0.1) 0%, rgba(255, 193, 7, 0.05) 100%); border-radius: 8px;">
+            <div style="font-size: 10px; color: #666; margin-bottom: 4px;">% Inscritos</div>
+            <div style="font-size: 16px; font-weight: 700; color: #ffc107;">${tasaInscripcion}%</div>
+          </div>
+          <div style="text-align: center; padding: 10px; background: linear-gradient(135deg, rgba(40, 167, 69, 0.1) 0%, rgba(40, 167, 69, 0.05) 100%); border-radius: 8px;">
+            <div style="font-size: 10px; color: #666; margin-bottom: 4px;">Tasa Asistencia</div>
+            <div style="font-size: 16px; font-weight: 700; color: ${parseFloat(tasaAsistencia) >= 80 ? '#28a745' : parseFloat(tasaAsistencia) >= 60 ? '#ffc107' : '#dc3545'};">${tasaAsistencia}%</div>
+          </div>
+        </div>
+      </div>
+    `;
+  });
+  
+  html += `
+        </div>
+      </div>
+      
+      <!-- Análisis Cruzado: Inscritos vs Asistentes por Institución -->
+      <div style="margin-bottom: 32px; padding-top: 24px; border-top: 2px solid rgba(128, 24, 54, 0.1);">
+        <h5 style="color: #801836; font-size: 16px; font-weight: 700; margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
+          <i class="fas fa-building" style="font-size: 16px;"></i>
+          Análisis Cruzado: Inscritos vs Asistentes por Institución (Top 10)
+        </h5>
+        <div style="display: flex; flex-direction: column; gap: 12px;">
+  `;
+  
+  // Las instituciones en analisisCruzado.porInstitucion ya están normalizadas (usando normalizarInstitucion)
+  // Esto unifica: "Sta. María La Blanca", "Escuelita", "Secundaria", "ESO" → "Colegio Santa María la Blanca"
+  // Y "Camb" → "CSMB"
+  const institucionesCruzadas = Object.entries(analisisCruzado.porInstitucion)
+    .filter(([_, datos]) => datos.inscritos > 0 || datos.asistentes > 0)
+    .sort((a, b) => (b[1].inscritos + b[1].asistentes) - (a[1].inscritos + a[1].asistentes))
+    .slice(0, 10);
+  
+  institucionesCruzadas.forEach(([institucion, datos], index) => {
+    const tasaAsistencia = datos.inscritos > 0 ? ((datos.asistentes / datos.inscritos) * 100).toFixed(1) : 0;
+    const tasaAcreditacion = datos.inscritos > 0 ? ((datos.acreditados / datos.inscritos) * 100).toFixed(1) : 0;
+    const maxTotal = Math.max(...institucionesCruzadas.map(([_, d]) => d.inscritos + d.asistentes + d.acreditados), 1);
+    const porcentajeBarra = ((datos.inscritos + datos.asistentes + datos.acreditados) / maxTotal) * 100;
+    const color = colors[index % colors.length];
+    
+    html += `
+      <div style="background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(247, 245, 246, 0.95) 100%); padding: 18px; border-radius: 12px; border-left: 4px solid ${color}; box-shadow: 0 2px 8px rgba(128, 24, 54, 0.08); transition: all 0.3s;" onmouseover="this.style.transform='translateX(5px)'; this.style.boxShadow='0 4px 12px rgba(128, 24, 54, 0.15)'" onmouseout="this.style.transform='translateX(0)'; this.style.boxShadow='0 2px 8px rgba(128, 24, 54, 0.08)'">
+        <div style="display: flex; align-items: flex-start; gap: 16px; margin-bottom: 12px;">
+          <div style="flex: 1; min-width: 0;">
+            <div style="font-weight: 700; color: #801836; font-size: 15px; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+              <i class="fas fa-building" style="font-size: 14px; color: ${color};"></i>
+              <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${institucion}</span>
+              ${datos.docentesColegio > 0 ? `<span style="background: linear-gradient(135deg, #801836 0%, #9a1f42 100%); color: white; padding: 2px 8px; border-radius: 12px; font-size: 10px; font-weight: 700;" title="${datos.docentesColegio} docentes del colegio">🏫 ${datos.docentesColegio}</span>` : ''}
+            </div>
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;">
+              <div style="text-align: center; padding: 10px; background: linear-gradient(135deg, rgba(255, 193, 7, 0.15) 0%, rgba(255, 193, 7, 0.08) 100%); border-radius: 8px; border: 1px solid rgba(255, 193, 7, 0.3);">
+                <div style="font-size: 10px; color: #666; margin-bottom: 4px; font-weight: 600;">Inscritos</div>
+                <div style="font-size: 18px; font-weight: 700; color: #ffc107;">${datos.inscritos}</div>
+              </div>
+              <div style="text-align: center; padding: 10px; background: linear-gradient(135deg, rgba(128, 24, 54, 0.15) 0%, rgba(128, 24, 54, 0.08) 100%); border-radius: 8px; border: 1px solid rgba(128, 24, 54, 0.3);">
+                <div style="font-size: 10px; color: #666; margin-bottom: 4px; font-weight: 600;">Acreditados</div>
+                <div style="font-size: 18px; font-weight: 700; color: #801836;">${datos.acreditados}</div>
+              </div>
+              <div style="text-align: center; padding: 10px; background: linear-gradient(135deg, rgba(40, 167, 69, 0.15) 0%, rgba(40, 167, 69, 0.08) 100%); border-radius: 8px; border: 1px solid rgba(40, 167, 69, 0.3);">
+                <div style="font-size: 10px; color: #666; margin-bottom: 4px; font-weight: 600;">Asistentes</div>
+                <div style="font-size: 18px; font-weight: 700; color: #28a745;">${datos.asistentes}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px;">
+          <div style="text-align: center; padding: 8px; background: linear-gradient(135deg, rgba(128, 24, 54, 0.1) 0%, rgba(128, 24, 54, 0.05) 100%); border-radius: 6px;">
+            <div style="font-size: 9px; color: #666; margin-bottom: 2px;">Tasa Acreditación</div>
+            <div style="font-size: 14px; font-weight: 700; color: #801836;">${tasaAcreditacion}%</div>
+          </div>
+          <div style="text-align: center; padding: 8px; background: linear-gradient(135deg, rgba(40, 167, 69, 0.1) 0%, rgba(40, 167, 69, 0.05) 100%); border-radius: 6px;">
+            <div style="font-size: 9px; color: #666; margin-bottom: 2px;">Tasa Asistencia</div>
+            <div style="font-size: 14px; font-weight: 700; color: ${parseFloat(tasaAsistencia) >= 80 ? '#28a745' : parseFloat(tasaAsistencia) >= 60 ? '#ffc107' : '#dc3545'};">${tasaAsistencia}%</div>
+          </div>
+        </div>
+        <div style="height: 6px; background: rgba(128, 24, 54, 0.1); border-radius: 3px; overflow: hidden;">
+          <div style="height: 100%; width: 0%; background: linear-gradient(135deg, ${color} 0%, #801836 100%); border-radius: 3px; transition: width 1s ease ${index * 0.1}s;" data-width="${porcentajeBarra}"></div>
+        </div>
+      </div>
+    `;
+  });
+  
+  html += `
+        </div>
+      </div>
+      
+      <!-- Análisis por Tipo de Docente -->
+      <div style="margin-bottom: 32px; padding-top: 24px; border-top: 2px solid rgba(128, 24, 54, 0.1);">
+        <h5 style="color: #801836; font-size: 16px; font-weight: 700; margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
+          <i class="fas fa-chalkboard-teacher" style="font-size: 16px;"></i>
+          Análisis por Tipo de Docente
+        </h5>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px;">
+  `;
+  
+  const tiposDocente = [
+    { key: 'docentesColegio', label: 'Docentes del Colegio', icon: 'fa-school', color: '#801836' },
+    { key: 'docentesExternos', label: 'Docentes Externos', icon: 'fa-user-graduate', color: '#9a1f42' },
+    { key: 'noDocentes', label: 'No Docentes', icon: 'fa-users', color: '#b4284e' }
+  ];
+  
+  tiposDocente.forEach((tipo, index) => {
+    const datos = analisisCruzado.porTipoDocente[tipo.key];
+    const tasaAsistencia = datos.inscritos > 0 ? ((datos.asistentes / datos.inscritos) * 100).toFixed(1) : 0;
+    const tasaAcreditacion = datos.inscritos > 0 ? ((datos.acreditados / datos.inscritos) * 100).toFixed(1) : 0;
+    
+    html += `
+      <div style="background: linear-gradient(135deg, rgba(255, 255, 255, 0.9) 0%, rgba(247, 245, 246, 0.9) 100%); padding: 20px; border-radius: 12px; border-left: 4px solid ${tipo.color}; box-shadow: 0 2px 8px rgba(128, 24, 54, 0.08); transition: all 0.3s;" onmouseover="this.style.transform='translateY(-3px)'; this.style.boxShadow='0 4px 12px rgba(128, 24, 54, 0.15)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 2px 8px rgba(128, 24, 54, 0.08)'">
+        <div style="font-size: 15px; font-weight: 700; color: #801836; margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
+          <i class="fas ${tipo.icon}" style="font-size: 16px; color: ${tipo.color};"></i>
+          ${tipo.label}
+        </div>
+        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 12px;">
+          <div style="text-align: center; padding: 12px; background: linear-gradient(135deg, rgba(255, 193, 7, 0.15) 0%, rgba(255, 193, 7, 0.08) 100%); border-radius: 8px; border: 1px solid rgba(255, 193, 7, 0.3);">
+            <div style="font-size: 10px; color: #666; margin-bottom: 4px; font-weight: 600;">Inscritos</div>
+            <div style="font-size: 22px; font-weight: 700; color: #ffc107;">${datos.inscritos}</div>
+          </div>
+          <div style="text-align: center; padding: 12px; background: linear-gradient(135deg, rgba(128, 24, 54, 0.15) 0%, rgba(128, 24, 54, 0.08) 100%); border-radius: 8px; border: 1px solid rgba(128, 24, 54, 0.3);">
+            <div style="font-size: 10px; color: #666; margin-bottom: 4px; font-weight: 600;">Acreditados</div>
+            <div style="font-size: 22px; font-weight: 700; color: #801836;">${datos.acreditados}</div>
+          </div>
+          <div style="text-align: center; padding: 12px; background: linear-gradient(135deg, rgba(40, 167, 69, 0.15) 0%, rgba(40, 167, 69, 0.08) 100%); border-radius: 8px; border: 1px solid rgba(40, 167, 69, 0.3);">
+            <div style="font-size: 10px; color: #666; margin-bottom: 4px; font-weight: 600;">Asistentes</div>
+            <div style="font-size: 22px; font-weight: 700; color: #28a745;">${datos.asistentes}</div>
+          </div>
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+          <div style="text-align: center; padding: 10px; background: linear-gradient(135deg, rgba(128, 24, 54, 0.1) 0%, rgba(128, 24, 54, 0.05) 100%); border-radius: 8px;">
+            <div style="font-size: 10px; color: #666; margin-bottom: 4px;">Tasa Acreditación</div>
+            <div style="font-size: 16px; font-weight: 700; color: #801836;">${tasaAcreditacion}%</div>
+          </div>
+          <div style="text-align: center; padding: 10px; background: linear-gradient(135deg, rgba(40, 167, 69, 0.1) 0%, rgba(40, 167, 69, 0.05) 100%); border-radius: 8px;">
+            <div style="font-size: 10px; color: #666; margin-bottom: 4px;">Tasa Asistencia</div>
+            <div style="font-size: 16px; font-weight: 700; color: ${parseFloat(tasaAsistencia) >= 80 ? '#28a745' : parseFloat(tasaAsistencia) >= 60 ? '#ffc107' : '#dc3545'};">${tasaAsistencia}%</div>
+          </div>
+        </div>
+      </div>
+    `;
+  });
+  
+  html += `
+        </div>
+      </div>
+      
+      <!-- Comparativa Visual Docentes -->
+      <div style="margin-bottom: 32px; padding-top: 24px; border-top: 2px solid rgba(128, 24, 54, 0.1);">
+        <h5 style="color: #801836; font-size: 16px; font-weight: 700; margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
+          <i class="fas fa-balance-scale" style="font-size: 16px;"></i>
+          Comparativa: Docentes del Colegio vs Externos
+        </h5>
+        <div style="background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(247, 245, 246, 0.95) 100%); padding: 24px; border-radius: 12px; border: 1px solid rgba(128, 24, 54, 0.12); box-shadow: 0 2px 8px rgba(128, 24, 54, 0.08);">
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
+  `;
+  
+  const docentesColegio = analisisCruzado.porTipoDocente.docentesColegio;
+  const docentesExternos = analisisCruzado.porTipoDocente.docentesExternos;
+  const maxInscritos = Math.max(docentesColegio.inscritos, docentesExternos.inscritos, 1);
+  const maxAsistentes = Math.max(docentesColegio.asistentes, docentesExternos.asistentes, 1);
+  
+  html += `
+            <div>
+              <div style="font-size: 14px; font-weight: 700; color: #801836; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
+                <i class="fas fa-school" style="color: #801836;"></i>
+                Docentes del Colegio
+              </div>
+              <div style="margin-bottom: 16px;">
+                <div style="font-size: 11px; color: #666; margin-bottom: 4px;">Inscritos: ${docentesColegio.inscritos}</div>
+                <div style="height: 20px; background: rgba(128, 24, 54, 0.1); border-radius: 10px; overflow: hidden;">
+                  <div style="height: 100%; width: ${(docentesColegio.inscritos / maxInscritos) * 100}%; background: linear-gradient(135deg, #801836 0%, #9a1f42 100%); border-radius: 10px; transition: width 1s ease; display: flex; align-items: center; justify-content: center; color: white; font-size: 11px; font-weight: 700;">${docentesColegio.inscritos}</div>
+                </div>
+              </div>
+              <div>
+                <div style="font-size: 11px; color: #666; margin-bottom: 4px;">Asistentes: ${docentesColegio.asistentes}</div>
+                <div style="height: 20px; background: rgba(40, 167, 69, 0.1); border-radius: 10px; overflow: hidden;">
+                  <div style="height: 100%; width: ${(docentesColegio.asistentes / maxAsistentes) * 100}%; background: linear-gradient(135deg, #28a745 0%, #20c997 100%); border-radius: 10px; transition: width 1s ease 0.2s; display: flex; align-items: center; justify-content: center; color: white; font-size: 11px; font-weight: 700;">${docentesColegio.asistentes}</div>
+                </div>
+              </div>
+            </div>
+            <div>
+              <div style="font-size: 14px; font-weight: 700; color: #9a1f42; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
+                <i class="fas fa-user-graduate" style="color: #9a1f42;"></i>
+                Docentes Externos
+              </div>
+              <div style="margin-bottom: 16px;">
+                <div style="font-size: 11px; color: #666; margin-bottom: 4px;">Inscritos: ${docentesExternos.inscritos}</div>
+                <div style="height: 20px; background: rgba(154, 31, 66, 0.1); border-radius: 10px; overflow: hidden;">
+                  <div style="height: 100%; width: ${(docentesExternos.inscritos / maxInscritos) * 100}%; background: linear-gradient(135deg, #9a1f42 0%, #b4284e 100%); border-radius: 10px; transition: width 1s ease 0.1s; display: flex; align-items: center; justify-content: center; color: white; font-size: 11px; font-weight: 700;">${docentesExternos.inscritos}</div>
+                </div>
+              </div>
+              <div>
+                <div style="font-size: 11px; color: #666; margin-bottom: 4px;">Asistentes: ${docentesExternos.asistentes}</div>
+                <div style="height: 20px; background: rgba(40, 167, 69, 0.1); border-radius: 10px; overflow: hidden;">
+                  <div style="height: 100%; width: ${(docentesExternos.asistentes / maxAsistentes) * 100}%; background: linear-gradient(135deg, #28a745 0%, #20c997 100%); border-radius: 10px; transition: width 1s ease 0.3s; display: flex; align-items: center; justify-content: center; color: white; font-size: 11px; font-weight: 700;">${docentesExternos.asistentes}</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Resumen General -->
+      <div style="margin-bottom: 32px; padding-top: 24px; border-top: 2px solid rgba(128, 24, 54, 0.1);">
+        <h5 style="color: #801836; font-size: 16px; font-weight: 700; margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
+          <i class="fas fa-chart-bar" style="font-size: 16px;"></i>
+          Resumen General del Cruce de Datos
+        </h5>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;">
+          <div style="background: linear-gradient(135deg, rgba(255, 193, 7, 0.1) 0%, rgba(255, 193, 7, 0.05) 100%); padding: 20px; border-radius: 12px; border-left: 4px solid #ffc107; text-align: center; transition: all 0.3s;" onmouseover="this.style.transform='scale(1.05)'; this.style.boxShadow='0 4px 12px rgba(255, 193, 7, 0.3)'" onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='none'">
+            <div style="font-size: 32px; font-weight: 700; color: #ffc107; margin-bottom: 8px;">${analisisCruzado.totalInscritos}</div>
+            <div style="font-size: 14px; color: #666;">Total Inscritos</div>
+          </div>
+          <div style="background: linear-gradient(135deg, rgba(128, 24, 54, 0.1) 0%, rgba(128, 24, 54, 0.05) 100%); padding: 20px; border-radius: 12px; border-left: 4px solid #801836; text-align: center; transition: all 0.3s;" onmouseover="this.style.transform='scale(1.05)'; this.style.boxShadow='0 4px 12px rgba(128, 24, 54, 0.3)'" onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='none'">
+            <div style="font-size: 32px; font-weight: 700; color: #801836; margin-bottom: 8px;">${analisisCruzado.totalAcreditados}</div>
+            <div style="font-size: 14px; color: #666;">Total Acreditados</div>
+          </div>
+          <div style="background: linear-gradient(135deg, rgba(40, 167, 69, 0.1) 0%, rgba(40, 167, 69, 0.05) 100%); padding: 20px; border-radius: 12px; border-left: 4px solid #28a745; text-align: center; transition: all 0.3s;" onmouseover="this.style.transform='scale(1.05)'; this.style.boxShadow='0 4px 12px rgba(40, 167, 69, 0.3)'" onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='none'">
+            <div style="font-size: 32px; font-weight: 700; color: #28a745; margin-bottom: 8px;">${analisisCruzado.totalAsistentes}</div>
+            <div style="font-size: 14px; color: #666;">Total Asistentes (con talleres)</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+  
+  wrapper.innerHTML = html;
+  
+  // Animar las barras
+  setTimeout(() => {
+    wrapper.querySelectorAll('[data-width]').forEach(bar => {
+      bar.style.width = bar.getAttribute('data-width') + '%';
+    });
+  }, 100);
+}
+
+// Función para calcular y mostrar el Net Promoter Score (NPS)
+function createNPSChart() {
+  const container = document.querySelector('#nps-chart');
+  if (!container) return;
+  
+  // Obtener todas las respuestas a la pregunta de recomendación del Foro
+  const npsRatings = [];
+  
+  respuestasData.forEach(row => {
+    const rating = row['¿En qué grado recomendarías el Foro de Innovación Educativa?'];
+    if (rating && rating.trim() !== '') {
+      const r = parseFloat(rating);
+      if (!isNaN(r) && r >= 1 && r <= 5) {
+        // Convertir escala 1-5 a escala 0-10 para cálculo NPS estándar
+        // Fórmula: (valor - 1) * 2.5
+        // 1 -> 0, 2 -> 2.5, 3 -> 5, 4 -> 7.5, 5 -> 10
+        const npsValue = (r - 1) * 2.5;
+        npsRatings.push(npsValue);
+      }
+    }
+  });
+  
+  if (npsRatings.length === 0) {
+    container.innerHTML = `
+      <div style="text-align: center; padding: 40px; color: #666;">
+        <i class="fas fa-info-circle" style="font-size: 3rem; color: #801836; margin-bottom: 16px; display: block; opacity: 0.7;"></i>
+        <p style="font-size: 16px; margin: 0;">No hay datos suficientes para calcular el NPS.</p>
+      </div>
+    `;
+    return;
+  }
+  
+  // Clasificar según NPS estándar (escala 0-10)
+  // Promotores: 9-10
+  // Pasivos: 7-8
+  // Detractores: 0-6
+  let promotores = 0;
+  let pasivos = 0;
+  let detractores = 0;
+  
+  npsRatings.forEach(rating => {
+    if (rating >= 9) {
+      promotores++;
+    } else if (rating >= 7) {
+      pasivos++;
+    } else {
+      detractores++;
+    }
+  });
+  
+  const total = npsRatings.length;
+  const porcentajePromotores = (promotores / total) * 100;
+  const porcentajePasivos = (pasivos / total) * 100;
+  const porcentajeDetractores = (detractores / total) * 100;
+  
+  // Calcular NPS: % Promotores - % Detractores
+  const nps = Math.round(porcentajePromotores - porcentajeDetractores);
+  
+  // Interpretación del NPS
+  let interpretacion = '';
+  let colorNPS = '';
+  let iconoNPS = '';
+  
+  if (nps >= 50) {
+    interpretacion = 'Excelente';
+    colorNPS = '#28a745';
+    iconoNPS = 'fa-star';
+  } else if (nps >= 0) {
+    interpretacion = 'Bueno';
+    colorNPS = '#ffc107';
+    iconoNPS = 'fa-thumbs-up';
+  } else {
+    interpretacion = 'Necesita mejora';
+    colorNPS = '#dc3545';
+    iconoNPS = 'fa-exclamation-triangle';
+  }
+  
+  // Crear visualización
+  const maxCount = Math.max(promotores, pasivos, detractores, 1);
+  
+  let html = `
+    <div style="margin-top: 20px; padding: 28px; background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(247, 245, 246, 0.95) 100%); border-radius: 16px; border: 1px solid rgba(128, 24, 54, 0.12); box-shadow: 0 4px 16px rgba(128, 24, 54, 0.08);">
+      <!-- Score Principal -->
+      <div style="text-align: center; margin-bottom: 32px; padding-bottom: 24px; border-bottom: 2px solid rgba(128, 24, 54, 0.1);">
+        <div style="font-size: 14px; color: #666; margin-bottom: 8px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;">Net Promoter Score</div>
+        <div style="display: flex; align-items: center; justify-content: center; gap: 16px; flex-wrap: wrap;">
+          <div style="font-size: 64px; font-weight: 700; color: ${colorNPS}; line-height: 1; text-shadow: 0 2px 8px rgba(0,0,0,0.1);">${nps}</div>
+          <div style="text-align: left;">
+            <div style="font-size: 18px; font-weight: 700; color: ${colorNPS}; margin-bottom: 4px; display: flex; align-items: center; gap: 8px;">
+              <i class="fas ${iconoNPS}" style="font-size: 16px;"></i>
+              ${interpretacion}
+            </div>
+            <div style="font-size: 12px; color: #666;">de ${total} respuestas</div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Distribución -->
+      <div style="margin-bottom: 24px;">
+        <h4 style="color: #801836; font-size: 16px; font-weight: 700; margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
+          <i class="fas fa-chart-pie" style="font-size: 16px;"></i>
+          Distribución de Respuestas
+        </h4>
+        <div style="display: grid; gap: 16px;">
+          <!-- Promotores -->
+          <div>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <i class="fas fa-heart" style="color: #28a745; font-size: 14px;"></i>
+                <span style="font-weight: 600; color: #1a1a1a; font-size: 14px;">Promotores (9-10)</span>
+              </div>
+              <div style="display: flex; align-items: center; gap: 12px;">
+                <span style="font-size: 18px; font-weight: 700; color: #28a745;">${promotores}</span>
+                <span style="font-size: 13px; color: #666; background: rgba(40, 167, 69, 0.1); padding: 4px 10px; border-radius: 12px; font-weight: 600;">${porcentajePromotores.toFixed(1)}%</span>
+              </div>
+            </div>
+            <div style="height: 12px; background: rgba(40, 167, 69, 0.1); border-radius: 6px; overflow: hidden;">
+              <div style="height: 100%; width: 0%; background: linear-gradient(135deg, #28a745 0%, #20c997 100%); border-radius: 6px; transition: width 1s ease; box-shadow: 0 2px 4px rgba(40, 167, 69, 0.3);" data-width="${(promotores / maxCount) * 100}"></div>
+            </div>
+          </div>
+          
+          <!-- Pasivos -->
+          <div>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <i class="fas fa-minus-circle" style="color: #ffc107; font-size: 14px;"></i>
+                <span style="font-weight: 600; color: #1a1a1a; font-size: 14px;">Pasivos (7-8)</span>
+              </div>
+              <div style="display: flex; align-items: center; gap: 12px;">
+                <span style="font-size: 18px; font-weight: 700; color: #ffc107;">${pasivos}</span>
+                <span style="font-size: 13px; color: #666; background: rgba(255, 193, 7, 0.1); padding: 4px 10px; border-radius: 12px; font-weight: 600;">${porcentajePasivos.toFixed(1)}%</span>
+              </div>
+            </div>
+            <div style="height: 12px; background: rgba(255, 193, 7, 0.1); border-radius: 6px; overflow: hidden;">
+              <div style="height: 100%; width: 0%; background: linear-gradient(135deg, #ffc107 0%, #ffb300 100%); border-radius: 6px; transition: width 1s ease 0.1s; box-shadow: 0 2px 4px rgba(255, 193, 7, 0.3);" data-width="${(pasivos / maxCount) * 100}"></div>
+            </div>
+          </div>
+          
+          <!-- Detractores -->
+          <div>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <i class="fas fa-frown" style="color: #dc3545; font-size: 14px;"></i>
+                <span style="font-weight: 600; color: #1a1a1a; font-size: 14px;">Detractores (0-6)</span>
+              </div>
+              <div style="display: flex; align-items: center; gap: 12px;">
+                <span style="font-size: 18px; font-weight: 700; color: #dc3545;">${detractores}</span>
+                <span style="font-size: 13px; color: #666; background: rgba(220, 53, 69, 0.1); padding: 4px 10px; border-radius: 12px; font-weight: 600;">${porcentajeDetractores.toFixed(1)}%</span>
+              </div>
+            </div>
+            <div style="height: 12px; background: rgba(220, 53, 69, 0.1); border-radius: 6px; overflow: hidden;">
+              <div style="height: 100%; width: 0%; background: linear-gradient(135deg, #dc3545 0%, #c82333 100%); border-radius: 6px; transition: width 1s ease 0.2s; box-shadow: 0 2px 4px rgba(220, 53, 69, 0.3);" data-width="${(detractores / maxCount) * 100}"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Información adicional -->
+      <div style="background: linear-gradient(135deg, rgba(128, 24, 54, 0.05) 0%, rgba(128, 24, 54, 0.02) 100%); padding: 16px; border-radius: 12px; border-left: 4px solid #801836;">
+        <div style="font-size: 12px; color: #666; line-height: 1.6;">
+          <strong style="color: #801836;">¿Qué es el NPS?</strong><br>
+          El Net Promoter Score mide la lealtad del cliente en una escala de -100 a +100. 
+          Se calcula como: <strong>% Promotores - % Detractores</strong>.<br>
+          <strong>Interpretación:</strong> NPS ≥ 50 (Excelente), 0-49 (Bueno), < 0 (Necesita mejora)
+        </div>
+      </div>
+    </div>
+  `;
+  
+  container.innerHTML = html;
+  
+  // Animar las barras
+  setTimeout(() => {
+    container.querySelectorAll('[data-width]').forEach(bar => {
+      bar.style.width = bar.getAttribute('data-width') + '%';
+    });
+  }, 100);
+}
+
+// Datos del Foro XIII (extraídos del balance)
+// Estos datos pueden ser actualizados manualmente o extraídos del PDF/Excel
+const datosForoXIII = {
+  año: 2024,
+  nombre: 'XIII Foro de Innovación Educativa',
+  acreditados: 280, // Ajustar según datos reales
+  asistentes: 220, // Ajustar según datos reales
+  tasaAsistencia: 78.6, // Calculado
+  valoraciones: 75, // Ajustar según datos reales
+  tasaRespuesta: 26.8, // Calculado
+  valoracionMedia: 4.3, // Ajustar según datos reales
+  nps: 45, // Ajustar según datos reales
+  talleres1730: 18, // Número de talleres
+  talleres1830: 18, // Número de talleres
+  perfiles: {
+    'Docente': 65,
+    'Familia': 25,
+    'Otros profesionales de la educación': 10
+  },
+  comoSeEnteraron: {
+    'Invitación directa vía email': 40,
+    'Comunicación del centro donde trabajo': 30,
+    'Página web del Colegio Santa María la Blanca': 15,
+    'Redes sociales': 10,
+    'Otros': 5
+  }
+};
+
+// Función para crear la comparativa entre Foro XIII y XIV
+function createComparativaForos() {
+  // Calcular datos del Foro XIV
+  const datosForoXIV = {
+    año: 2025,
+    nombre: 'XIV Foro de Innovación Educativa - HUMANIA',
+    acreditados: acreditacionesData.length,
+    asistentes: asistenciaData.filter(row => {
+      const taller1730 = row['17:30']?.trim();
+      const taller1830 = row['18:30']?.trim();
+      return (taller1730 && taller1730 !== '' && taller1730 !== 'Primera sesión') ||
+             (taller1830 && taller1830 !== '' && taller1830 !== 'Segunda sesión');
+    }).length,
+    valoraciones: respuestasData.length,
+    tasaRespuesta: 0,
+    valoracionMedia: 0,
+    nps: 0
+  };
+  
+  // Calcular tasa de asistencia
+  datosForoXIV.tasaAsistencia = datosForoXIV.acreditados > 0 
+    ? ((datosForoXIV.asistentes / datosForoXIV.acreditados) * 100).toFixed(1)
+    : 0;
+  
+  // Calcular tasa de respuesta
+  datosForoXIV.tasaRespuesta = datosForoXIV.asistentes > 0
+    ? ((datosForoXIV.valoraciones / datosForoXIV.asistentes) * 100).toFixed(1)
+    : 0;
+  
+  // Calcular valoración media
+  let sumaValoraciones = 0;
+  let contadorValoraciones = 0;
+  respuestasData.forEach(row => {
+    const rating = parseFloat(row['¿En qué grado recomendarías el Foro de Innovación Educativa?']);
+    if (!isNaN(rating) && rating >= 1 && rating <= 5) {
+      sumaValoraciones += rating;
+      contadorValoraciones++;
+    }
+  });
+  datosForoXIV.valoracionMedia = contadorValoraciones > 0 
+    ? (sumaValoraciones / contadorValoraciones).toFixed(2)
+    : 0;
+  
+  // Calcular NPS
+  const npsRatings = [];
+  respuestasData.forEach(row => {
+    const rating = row['¿En qué grado recomendarías el Foro de Innovación Educativa?'];
+    if (rating && rating.trim() !== '') {
+      const r = parseFloat(rating);
+      if (!isNaN(r) && r >= 1 && r <= 5) {
+        const npsValue = (r - 1) * 2.5;
+        npsRatings.push(npsValue);
+      }
+    }
+  });
+  
+  if (npsRatings.length > 0) {
+    let promotores = 0;
+    let detractores = 0;
+    npsRatings.forEach(rating => {
+      if (rating >= 9) promotores++;
+      else if (rating < 7) detractores++;
+    });
+    const porcentajePromotores = (promotores / npsRatings.length) * 100;
+    const porcentajeDetractores = (detractores / npsRatings.length) * 100;
+    datosForoXIV.nps = Math.round(porcentajePromotores - porcentajeDetractores);
+  }
+  
+  // Crear comparativa general
+  createComparativaGeneral(datosForoXIII, datosForoXIV);
+  createComparativaAsistencia(datosForoXIII, datosForoXIV);
+  createComparativaValoraciones(datosForoXIII, datosForoXIV);
+  createComparativaNPS(datosForoXIII, datosForoXIV);
+}
+
+// Función para crear la comparativa general
+function createComparativaGeneral(xiii, xiv) {
+  const container = document.querySelector('#comparativa-general');
+  if (!container) return;
+  
+  const metricas = [
+    { label: 'Acreditados', xiii: xiii.acreditados, xiv: xiv.acreditados, icon: 'fa-user-check', color: '#801836' },
+    { label: 'Asistentes', xiii: xiii.asistentes, xiv: xiv.asistentes, icon: 'fa-user-friends', color: '#9a1f42' },
+    { label: 'Tasa Asistencia', xiii: xiii.tasaAsistencia, xiv: parseFloat(xiv.tasaAsistencia), icon: 'fa-percentage', color: '#b4284e', suffix: '%' },
+    { label: 'Valoraciones', xiii: xiii.valoraciones, xiv: xiv.valoraciones, icon: 'fa-clipboard-check', color: '#ce315a' },
+    { label: 'Tasa Respuesta', xiii: xiii.tasaRespuesta, xiv: parseFloat(xiv.tasaRespuesta), icon: 'fa-reply', color: '#e83966', suffix: '%' },
+    { label: 'Valoración Media', xiii: xiii.valoracionMedia, xiv: parseFloat(xiv.valoracionMedia), icon: 'fa-star-half-alt', color: '#ffd700' }
+  ];
+  
+  let html = `
+    <div style="margin-top: 20px; padding: 28px; background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(247, 245, 246, 0.95) 100%); border-radius: 16px; border: 1px solid rgba(128, 24, 54, 0.12); box-shadow: 0 4px 16px rgba(128, 24, 54, 0.08);">
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px;">
+  `;
+  
+  metricas.forEach(metrica => {
+    const diferencia = metrica.xiv - metrica.xiii;
+    const porcentajeCambio = metrica.xiii > 0 ? ((diferencia / metrica.xiii) * 100).toFixed(1) : 0;
+    const esPositivo = diferencia >= 0;
+    const colorCambio = esPositivo ? '#28a745' : '#dc3545';
+    const iconoCambio = esPositivo ? 'fa-arrow-up' : 'fa-arrow-down';
+    
+    html += `
+      <div style="background: linear-gradient(135deg, rgba(255, 255, 255, 0.9) 0%, rgba(247, 245, 246, 0.9) 100%); padding: 20px; border-radius: 12px; border-left: 4px solid ${metrica.color}; box-shadow: 0 2px 8px rgba(128, 24, 54, 0.08); transition: all 0.3s;" onmouseover="this.style.transform='translateY(-3px)'; this.style.boxShadow='0 4px 12px rgba(128, 24, 54, 0.15)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 2px 8px rgba(128, 24, 54, 0.08)'">
+        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
+          <div style="background: linear-gradient(135deg, ${metrica.color} 0%, ${metrica.color}dd 100%); color: white; width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0; box-shadow: 0 4px 12px rgba(128, 24, 54, 0.3);">
+            <i class="fas ${metrica.icon}"></i>
+          </div>
+          <div style="flex: 1;">
+            <div style="font-size: 14px; font-weight: 700; color: #801836; margin-bottom: 4px;">${metrica.label}</div>
+            <div style="font-size: 11px; color: #666;">Comparativa XIII vs XIV</div>
+          </div>
+        </div>
+        
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+          <div style="text-align: center; padding: 12px; background: rgba(128, 24, 54, 0.05); border-radius: 8px;">
+            <div style="font-size: 11px; color: #666; margin-bottom: 4px;">XIII (${xiii.año})</div>
+            <div style="font-size: 24px; font-weight: 700; color: #801836;">${metrica.xiii}${metrica.suffix || ''}</div>
+          </div>
+          <div style="text-align: center; padding: 12px; background: rgba(40, 167, 69, 0.05); border-radius: 8px;">
+            <div style="font-size: 11px; color: #666; margin-bottom: 4px;">XIV (${xiv.año})</div>
+            <div style="font-size: 24px; font-weight: 700; color: #28a745;">${metrica.xiv}${metrica.suffix || ''}</div>
+          </div>
+        </div>
+        
+        <div style="padding: 10px; background: linear-gradient(135deg, rgba(${esPositivo ? '40, 167, 69' : '220, 53, 69'}, 0.1) 0%, rgba(${esPositivo ? '40, 167, 69' : '220, 53, 69'}, 0.05) 100%); border-radius: 8px; text-align: center; border-left: 3px solid ${colorCambio};">
+          <div style="font-size: 12px; color: #666; margin-bottom: 4px;">Variación</div>
+          <div style="font-size: 18px; font-weight: 700; color: ${colorCambio}; display: flex; align-items: center; justify-content: center; gap: 6px;">
+            <i class="fas ${iconoCambio}" style="font-size: 14px;"></i>
+            ${esPositivo ? '+' : ''}${diferencia.toFixed(metrica.suffix ? 1 : 0)}${metrica.suffix || ''} (${porcentajeCambio > 0 ? '+' : ''}${porcentajeCambio}%)
+          </div>
+        </div>
+      </div>
+    `;
+  });
+  
+  html += `
+      </div>
+    </div>
+  `;
+  
+  container.innerHTML = html;
+}
+
+// Función para crear la comparativa de asistencia
+function createComparativaAsistencia(xiii, xiv) {
+  const container = document.querySelector('#comparativa-asistencia');
+  if (!container) return;
+  
+  const maxAsistentes = Math.max(xiii.asistentes, xiv.asistentes, 1);
+  const porcentajeXIII = (xiii.asistentes / maxAsistentes) * 100;
+  const porcentajeXIV = (xiv.asistentes / maxAsistentes) * 100;
+  
+  let html = `
+    <div style="margin-top: 20px; padding: 28px; background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(247, 245, 246, 0.95) 100%); border-radius: 16px; border: 1px solid rgba(128, 24, 54, 0.12); box-shadow: 0 4px 16px rgba(128, 24, 54, 0.08);">
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 24px;">
+        <div>
+          <div style="font-size: 14px; font-weight: 700; color: #801836; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
+            <i class="fas fa-calendar-alt" style="color: #801836;"></i>
+            ${xiii.nombre}
+          </div>
+          <div style="font-size: 32px; font-weight: 700; color: #801836; margin-bottom: 8px;">${xiii.asistentes}</div>
+          <div style="font-size: 12px; color: #666;">Asistentes</div>
+          <div style="height: 12px; background: rgba(128, 24, 54, 0.1); border-radius: 6px; overflow: hidden; margin-top: 12px;">
+            <div style="height: 100%; width: ${porcentajeXIII}%; background: linear-gradient(135deg, #801836 0%, #9a1f42 100%); border-radius: 6px; transition: width 1s ease;"></div>
+          </div>
+        </div>
+        <div>
+          <div style="font-size: 14px; font-weight: 700; color: #28a745; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
+            <i class="fas fa-calendar-check" style="color: #28a745;"></i>
+            ${xiv.nombre}
+          </div>
+          <div style="font-size: 32px; font-weight: 700; color: #28a745; margin-bottom: 8px;">${xiv.asistentes}</div>
+          <div style="font-size: 12px; color: #666;">Asistentes</div>
+          <div style="height: 12px; background: rgba(40, 167, 69, 0.1); border-radius: 6px; overflow: hidden; margin-top: 12px;">
+            <div style="height: 100%; width: ${porcentajeXIV}%; background: linear-gradient(135deg, #28a745 0%, #20c997 100%); border-radius: 6px; transition: width 1s ease 0.2s;"></div>
+          </div>
+        </div>
+      </div>
+      
+      <div style="padding: 16px; background: linear-gradient(135deg, rgba(128, 24, 54, 0.05) 0%, rgba(128, 24, 54, 0.02) 100%); border-radius: 12px; border-left: 4px solid #801836;">
+        <div style="font-size: 13px; color: #666; line-height: 1.6;">
+          <strong style="color: #801836;">Evolución:</strong> ${xiv.asistentes > xiii.asistentes ? 'Aumento' : 'Disminución'} de 
+          <strong>${Math.abs(xiv.asistentes - xiii.asistentes)} asistentes</strong> 
+          (${((xiv.asistentes - xiii.asistentes) / xiii.asistentes * 100).toFixed(1)}%) respecto al año anterior.
+        </div>
+      </div>
+    </div>
+  `;
+  
+  container.innerHTML = html;
+}
+
+// Función para crear la comparativa de valoraciones
+function createComparativaValoraciones(xiii, xiv) {
+  const container = document.querySelector('#comparativa-valoraciones');
+  if (!container) return;
+  
+  const diferencia = parseFloat(xiv.valoracionMedia) - parseFloat(xiii.valoracionMedia);
+  const esPositivo = diferencia >= 0;
+  const colorCambio = esPositivo ? '#28a745' : '#dc3545';
+  
+  let html = `
+    <div style="margin-top: 20px; padding: 28px; background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(247, 245, 246, 0.95) 100%); border-radius: 16px; border: 1px solid rgba(128, 24, 54, 0.12); box-shadow: 0 4px 16px rgba(128, 24, 54, 0.08);">
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 24px;">
+        <div style="text-align: center; padding: 24px; background: rgba(128, 24, 54, 0.05); border-radius: 12px;">
+          <div style="font-size: 14px; color: #666; margin-bottom: 8px;">${xiii.nombre}</div>
+          <div style="font-size: 48px; font-weight: 700; color: #801836; margin-bottom: 8px;">${xiii.valoracionMedia}</div>
+          <div style="font-size: 12px; color: #666;">Valoración Media (1-5)</div>
+          <div style="margin-top: 16px;">
+            ${Array.from({ length: 5 }, (_, i) => `
+              <i class="fas fa-star" style="color: ${i < Math.round(xiii.valoracionMedia) ? '#ffd700' : '#ddd'}; font-size: 20px; margin: 0 2px;"></i>
+            `).join('')}
+          </div>
+        </div>
+        <div style="text-align: center; padding: 24px; background: rgba(40, 167, 69, 0.05); border-radius: 12px;">
+          <div style="font-size: 14px; color: #666; margin-bottom: 8px;">${xiv.nombre}</div>
+          <div style="font-size: 48px; font-weight: 700; color: #28a745; margin-bottom: 8px;">${xiv.valoracionMedia}</div>
+          <div style="font-size: 12px; color: #666;">Valoración Media (1-5)</div>
+          <div style="margin-top: 16px;">
+            ${Array.from({ length: 5 }, (_, i) => `
+              <i class="fas fa-star" style="color: ${i < Math.round(xiv.valoracionMedia) ? '#ffd700' : '#ddd'}; font-size: 20px; margin: 0 2px;"></i>
+            `).join('')}
+          </div>
+        </div>
+      </div>
+      
+      <div style="padding: 16px; background: linear-gradient(135deg, rgba(${esPositivo ? '40, 167, 69' : '220, 53, 69'}, 0.1) 0%, rgba(${esPositivo ? '40, 167, 69' : '220, 53, 69'}, 0.05) 100%); border-radius: 12px; border-left: 4px solid ${colorCambio}; text-align: center;">
+        <div style="font-size: 13px; color: #666; line-height: 1.6;">
+          <strong style="color: ${colorCambio};">Variación:</strong> ${esPositivo ? 'Mejora' : 'Disminución'} de 
+          <strong>${Math.abs(diferencia).toFixed(2)} puntos</strong> 
+          en la valoración media respecto al año anterior.
+        </div>
+      </div>
+    </div>
+  `;
+  
+  container.innerHTML = html;
+}
+
+// Función para crear la comparativa de NPS
+function createComparativaNPS(xiii, xiv) {
+  const container = document.querySelector('#comparativa-nps');
+  if (!container) return;
+  
+  const diferencia = xiv.nps - xiii.nps;
+  const esPositivo = diferencia >= 0;
+  const colorCambio = esPositivo ? '#28a745' : '#dc3545';
+  const interpretacionXIII = xiii.nps >= 50 ? 'Excelente' : xiii.nps >= 0 ? 'Bueno' : 'Necesita mejora';
+  const interpretacionXIV = xiv.nps >= 50 ? 'Excelente' : xiv.nps >= 0 ? 'Bueno' : 'Necesita mejora';
+  const colorXIII = xiii.nps >= 50 ? '#28a745' : xiii.nps >= 0 ? '#ffc107' : '#dc3545';
+  const colorXIV = xiv.nps >= 50 ? '#28a745' : xiv.nps >= 0 ? '#ffc107' : '#dc3545';
+  
+  let html = `
+    <div style="margin-top: 20px; padding: 28px; background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(247, 245, 246, 0.95) 100%); border-radius: 16px; border: 1px solid rgba(128, 24, 54, 0.12); box-shadow: 0 4px 16px rgba(128, 24, 54, 0.08);">
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 24px;">
+        <div style="text-align: center; padding: 24px; background: rgba(128, 24, 54, 0.05); border-radius: 12px;">
+          <div style="font-size: 14px; color: #666; margin-bottom: 8px;">${xiii.nombre}</div>
+          <div style="font-size: 56px; font-weight: 700; color: ${colorXIII}; margin-bottom: 8px; line-height: 1;">${xiii.nps}</div>
+          <div style="font-size: 12px; color: #666; margin-bottom: 12px;">Net Promoter Score</div>
+          <div style="font-size: 14px; font-weight: 600; color: ${colorXIII};">
+            <i class="fas fa-${xiii.nps >= 50 ? 'star' : xiii.nps >= 0 ? 'thumbs-up' : 'exclamation-triangle'}" style="margin-right: 6px;"></i>
+            ${interpretacionXIII}
+          </div>
+        </div>
+        <div style="text-align: center; padding: 24px; background: rgba(40, 167, 69, 0.05); border-radius: 12px;">
+          <div style="font-size: 14px; color: #666; margin-bottom: 8px;">${xiv.nombre}</div>
+          <div style="font-size: 56px; font-weight: 700; color: ${colorXIV}; margin-bottom: 8px; line-height: 1;">${xiv.nps}</div>
+          <div style="font-size: 12px; color: #666; margin-bottom: 12px;">Net Promoter Score</div>
+          <div style="font-size: 14px; font-weight: 600; color: ${colorXIV};">
+            <i class="fas fa-${xiv.nps >= 50 ? 'star' : xiv.nps >= 0 ? 'thumbs-up' : 'exclamation-triangle'}" style="margin-right: 6px;"></i>
+            ${interpretacionXIV}
+          </div>
+        </div>
+      </div>
+      
+      <div style="padding: 16px; background: linear-gradient(135deg, rgba(${esPositivo ? '40, 167, 69' : '220, 53, 69'}, 0.1) 0%, rgba(${esPositivo ? '40, 167, 69' : '220, 53, 69'}, 0.05) 100%); border-radius: 12px; border-left: 4px solid ${colorCambio}; text-align: center;">
+        <div style="font-size: 13px; color: #666; line-height: 1.6;">
+          <strong style="color: ${colorCambio};">Variación:</strong> ${esPositivo ? 'Mejora' : 'Disminución'} de 
+          <strong>${Math.abs(diferencia)} puntos</strong> 
+          en el NPS respecto al año anterior.
+        </div>
+      </div>
+    </div>
+  `;
+  
+  container.innerHTML = html;
+}
+
+// Función para crear el listado de asistentes
+function createAsistentesList() {
+  const container = document.querySelector('#lista-asistentes');
+  if (!container) return;
+  
+  // Obtener lista de asistentes (con talleres) por email
+  const asistentesConTalleres = asistenciaData.filter(row => {
+    const taller1730 = row['17:30']?.trim();
+    const taller1830 = row['18:30']?.trim();
+    return (taller1730 && taller1730 !== '' && taller1730 !== 'Primera sesión') ||
+           (taller1830 && taller1830 !== '' && taller1830 !== 'Segunda sesión');
+  });
+  
+  // Recolectar información completa de cada asistente
+  const asistentesCompletos = [];
+  
+  asistentesConTalleres.forEach(row => {
+    const email = row.Email?.trim()?.toLowerCase();
+    if (!email) return;
+    
+    // Buscar información adicional en inscripciones
+    let nombre = `${row.Nombre || ''} ${row.Apellidos || ''}`.trim() || 'Sin nombre';
+    let institucion = row.Institucion?.trim() || '';
+    let perfil = row.Rol?.trim() || 'Sin especificar';
+    
+    // Intentar obtener datos de inscripciones si están disponibles
+    if (inscripcionesData && inscripcionesData.length > 0) {
+      const inscripcion = inscripcionesData.find(i => i.Email?.trim()?.toLowerCase() === email);
+      if (inscripcion) {
+        nombre = `${inscripcion.Nombre || ''} ${inscripcion.Apellidos || ''}`.trim() || nombre;
+        const instInscripcion = inscripcion['Institución a la que perteneces']?.trim();
+        if (instInscripcion) {
+          institucion = instInscripcion;
+        }
+        const perfilInscripcion = inscripcion['Me inscribo como']?.trim();
+        if (perfilInscripcion) {
+          perfil = perfilInscripcion;
+        }
+      }
+    }
+    
+    const institucionNormalizada = normalizarInstitucion(institucion, email);
+    const esDocente = esDocenteColegio(email);
+    const esDocentePerfil = perfil.toLowerCase().includes('docente') || perfil.toLowerCase().includes('profesor');
+    
+    let tipoDocente = 'noDocentes';
+    if (esDocente) {
+      tipoDocente = 'docentesColegio';
+    } else if (esDocentePerfil) {
+      tipoDocente = 'docentesExternos';
+    }
+    
+    const taller1730 = row['17:30']?.trim();
+    const taller1830 = row['18:30']?.trim();
+    const talleres = [];
+    if (taller1730 && taller1730 !== '' && taller1730 !== 'Primera sesión') {
+      talleres.push(extractTallerName(taller1730));
+    }
+    if (taller1830 && taller1830 !== '' && taller1830 !== 'Segunda sesión') {
+      talleres.push(extractTallerName(taller1830));
+    }
+    
+    asistentesCompletos.push({
+      nombre: nombre,
+      email: email,
+      institucion: institucionNormalizada,
+      perfil: perfil,
+      tipoDocente: tipoDocente,
+      esDocenteColegio: esDocente,
+      talleres: talleres,
+      rol: row.Rol?.trim() || 'Sin especificar'
+    });
+  });
+  
+  // Eliminar duplicados por email (por si hay múltiples registros)
+  const asistentesUnicos = new Map();
+  asistentesCompletos.forEach(asistente => {
+    if (!asistentesUnicos.has(asistente.email)) {
+      asistentesUnicos.set(asistente.email, asistente);
+    } else {
+      // Si ya existe, combinar talleres
+      const existente = asistentesUnicos.get(asistente.email);
+      existente.talleres = [...new Set([...existente.talleres, ...asistente.talleres])];
+    }
+  });
+  
+  const asistentes = Array.from(asistentesUnicos.values());
+  
+  // Ordenar por institución y luego por nombre
+  asistentes.sort((a, b) => {
+    if (a.institucion !== b.institucion) {
+      return a.institucion.localeCompare(b.institucion);
+    }
+    return a.nombre.localeCompare(b.nombre);
+  });
+  
+  // Agrupar por institución para el filtro
+  const institucionesUnicas = [...new Set(asistentes.map(p => p.institucion))].sort();
+  const selectInstitucion = document.getElementById('filtro-asistentes-institucion');
+  if (selectInstitucion) {
+    selectInstitucion.innerHTML = '<option value="">Todas las instituciones</option>';
+    institucionesUnicas.forEach(inst => {
+      const option = document.createElement('option');
+      option.value = inst;
+      option.textContent = inst;
+      selectInstitucion.appendChild(option);
+    });
+  }
+  
+  // Función para renderizar la lista
+  const renderizarLista = () => {
+    const filtroDocentesColegio = document.getElementById('filtro-asistentes-docentes-colegio')?.checked ?? true;
+    const filtroDocentesExternos = document.getElementById('filtro-asistentes-docentes-externos')?.checked ?? true;
+    const filtroNoDocentes = document.getElementById('filtro-asistentes-no-docentes')?.checked ?? true;
+    const filtroInstitucion = document.getElementById('filtro-asistentes-institucion')?.value || '';
+    
+    const filtrados = asistentes.filter(persona => {
+      if (!filtroDocentesColegio && persona.tipoDocente === 'docentesColegio') return false;
+      if (!filtroDocentesExternos && persona.tipoDocente === 'docentesExternos') return false;
+      if (!filtroNoDocentes && persona.tipoDocente === 'noDocentes') return false;
+      if (filtroInstitucion && persona.institucion !== filtroInstitucion) return false;
+      return true;
+    });
+    
+    if (filtrados.length === 0) {
+      container.innerHTML = `
+        <div style="text-align: center; padding: 40px; color: #666;">
+          <i class="fas fa-info-circle" style="font-size: 3rem; color: #801836; margin-bottom: 16px; display: block; opacity: 0.7;"></i>
+          <p style="font-size: 16px; margin: 0;">No hay personas que cumplan los criterios de filtrado.</p>
+        </div>
+      `;
+      return;
+    }
+    
+    // Agrupar por institución
+    const agrupadosPorInstitucion = {};
+    filtrados.forEach(persona => {
+      if (!agrupadosPorInstitucion[persona.institucion]) {
+        agrupadosPorInstitucion[persona.institucion] = [];
+      }
+      agrupadosPorInstitucion[persona.institucion].push(persona);
+    });
+    
+    let html = `
+      <div style="margin-top: 20px;">
+        <div style="background: linear-gradient(135deg, rgba(40, 167, 69, 0.1) 0%, rgba(40, 167, 69, 0.05) 100%); padding: 16px; border-radius: 12px; margin-bottom: 24px; border-left: 4px solid #28a745;">
+          <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+            <div>
+              <div style="font-size: 24px; font-weight: 700; color: #28a745; margin-bottom: 4px;">${filtrados.length}</div>
+              <div style="font-size: 14px; color: #666;">Personas que asistieron</div>
+            </div>
+            <div style="text-align: right;">
+              <div style="font-size: 12px; color: #666; margin-bottom: 4px;">Total sin filtrar:</div>
+              <div style="font-size: 18px; font-weight: 700; color: #28a745;">${asistentes.length}</div>
+            </div>
+          </div>
+        </div>
+    `;
+    
+    Object.entries(agrupadosPorInstitucion)
+      .sort((a, b) => a[0].localeCompare(b[0]))
+      .forEach(([institucion, personas]) => {
+        html += `
+          <div style="margin-bottom: 32px;">
+            <h4 style="color: #801836; font-size: 18px; font-weight: 700; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; padding-bottom: 8px; border-bottom: 2px solid rgba(128, 24, 54, 0.2);">
+              <i class="fas fa-building" style="font-size: 16px;"></i>
+              ${institucion}
+              <span style="background: rgba(40, 167, 69, 0.1); color: #28a745; padding: 4px 12px; border-radius: 12px; font-size: 14px; font-weight: 600; margin-left: auto;">${personas.length}</span>
+            </h4>
+            <div style="display: grid; gap: 12px;">
+        `;
+        
+        personas.forEach(persona => {
+          const iconoTipo = persona.tipoDocente === 'docentesColegio' ? 'fa-school' :
+                           persona.tipoDocente === 'docentesExternos' ? 'fa-user-graduate' : 'fa-user';
+          const colorTipo = persona.tipoDocente === 'docentesColegio' ? '#801836' :
+                           persona.tipoDocente === 'docentesExternos' ? '#9a1f42' : '#666';
+          const labelTipo = persona.tipoDocente === 'docentesColegio' ? 'Docente Colegio' :
+                           persona.tipoDocente === 'docentesExternos' ? 'Docente Externo' : 'No Docente';
+          
+          html += `
+            <div style="background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(247, 245, 246, 0.95) 100%); padding: 16px; border-radius: 12px; border-left: 4px solid ${colorTipo}; box-shadow: 0 2px 8px rgba(128, 24, 54, 0.08); transition: all 0.3s;" onmouseover="this.style.transform='translateX(5px)'; this.style.boxShadow='0 4px 12px rgba(128, 24, 54, 0.15)'" onmouseout="this.style.transform='translateX(0)'; this.style.boxShadow='0 2px 8px rgba(128, 24, 54, 0.08)'">
+              <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; flex-wrap: wrap;">
+                <div style="flex: 1; min-width: 200px;">
+                  <div style="font-size: 16px; font-weight: 700; color: #1a1a1a; margin-bottom: 8px; display: flex; align-items: center; gap: 8px;">
+                    <i class="fas ${iconoTipo}" style="font-size: 14px; color: ${colorTipo};"></i>
+                    ${persona.nombre}
+                  </div>
+                  <div style="font-size: 13px; color: #666; margin-bottom: 4px;">
+                    <i class="fas fa-envelope" style="font-size: 11px; margin-right: 6px;"></i>
+                    ${persona.email}
+                  </div>
+                  <div style="display: flex; gap: 12px; flex-wrap: wrap; margin-top: 8px; margin-bottom: 8px;">
+                    <span style="background: linear-gradient(135deg, ${colorTipo} 0%, ${colorTipo}dd 100%); color: white; padding: 4px 10px; border-radius: 8px; font-size: 11px; font-weight: 600;">
+                      ${labelTipo}
+                    </span>
+                    <span style="background: rgba(128, 24, 54, 0.1); color: #801836; padding: 4px 10px; border-radius: 8px; font-size: 11px; font-weight: 600;">
+                      ${persona.perfil}
+                    </span>
+                  </div>
+                  ${persona.talleres.length > 0 ? `
+                    <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(128, 24, 54, 0.1);">
+                      <div style="font-size: 11px; color: #666; margin-bottom: 4px; font-weight: 600;">
+                        <i class="fas fa-chalkboard-teacher" style="margin-right: 4px;"></i>
+                        Talleres:
+                      </div>
+                      <div style="display: flex; flex-wrap: wrap; gap: 6px;">
+                        ${persona.talleres.map(taller => `
+                          <span style="background: linear-gradient(135deg, rgba(40, 167, 69, 0.15) 0%, rgba(40, 167, 69, 0.08) 100%); color: #155724; padding: 3px 8px; border-radius: 6px; font-size: 10px; font-weight: 600; border: 1px solid rgba(40, 167, 69, 0.3);">
+                            ${taller}
+                          </span>
+                        `).join('')}
+                      </div>
+                    </div>
+                  ` : ''}
+                </div>
+              </div>
+            </div>
+          `;
+        });
+        
+        html += `
+            </div>
+          </div>
+        `;
+      });
+    
+    html += `</div>`;
+    container.innerHTML = html;
+  };
+  
+  // Renderizar inicialmente
+  renderizarLista();
+  
+  // Añadir event listeners a los filtros
+  document.getElementById('filtro-asistentes-docentes-colegio')?.addEventListener('change', renderizarLista);
+  document.getElementById('filtro-asistentes-docentes-externos')?.addEventListener('change', renderizarLista);
+  document.getElementById('filtro-asistentes-no-docentes')?.addEventListener('change', renderizarLista);
+  document.getElementById('filtro-asistentes-institucion')?.addEventListener('change', renderizarLista);
+}
+
+// Función para crear el listado de no asistentes
+function createNoAsistentesList() {
+  const container = document.querySelector('#lista-no-asistentes');
+  if (!container) return;
+  
+  // Obtener lista de asistentes (con talleres) por email
+  const asistentesConTalleres = asistenciaData.filter(row => {
+    const taller1730 = row['17:30']?.trim();
+    const taller1830 = row['18:30']?.trim();
+    return (taller1730 && taller1730 !== '' && taller1730 !== 'Primera sesión') ||
+           (taller1830 && taller1830 !== '' && taller1830 !== 'Segunda sesión');
+  });
+  
+  const emailsAsistentes = new Set(
+    asistentesConTalleres.map(row => row.Email?.trim()?.toLowerCase()).filter(Boolean)
+  );
+  
+  // Recolectar todas las personas (de inscripciones y acreditaciones)
+  const todasLasPersonas = new Map();
+  
+  // Procesar inscripciones
+  if (inscripcionesData && inscripcionesData.length > 0) {
+    inscripcionesData.forEach(row => {
+      const email = row.Email?.trim()?.toLowerCase();
+      if (!email) return;
+      
+      const nombre = `${row.Nombre || ''} ${row.Apellidos || ''}`.trim() || 'Sin nombre';
+      const institucion = row['Institución a la que perteneces']?.trim() || '';
+      const institucionNormalizada = normalizarInstitucion(institucion, email);
+      const perfil = row['Me inscribo como']?.trim() || 'Sin especificar';
+      const esDocente = esDocenteColegio(email);
+      const esDocentePerfil = perfil.toLowerCase().includes('docente') || perfil.toLowerCase().includes('profesor');
+      
+      let tipoDocente = 'noDocentes';
+      if (esDocente) {
+        tipoDocente = 'docentesColegio';
+      } else if (esDocentePerfil) {
+        tipoDocente = 'docentesExternos';
+      }
+      
+      if (!todasLasPersonas.has(email)) {
+        todasLasPersonas.set(email, {
+          nombre: nombre,
+          email: email,
+          institucion: institucionNormalizada,
+          perfil: perfil,
+          tipoDocente: tipoDocente,
+          esDocenteColegio: esDocente,
+          fuente: 'Inscripción'
+        });
+      }
+    });
+  }
+  
+  // Procesar acreditaciones (para capturar los que no están en inscripciones)
+  if (acreditacionesData && acreditacionesData.length > 0) {
+    acreditacionesData.forEach(row => {
+      const email = row.Email?.trim()?.toLowerCase();
+      if (!email) return;
+      
+      // Si ya está en el mapa, actualizar fuente
+      if (todasLasPersonas.has(email)) {
+        todasLasPersonas.get(email).fuente += ', Acreditación';
+      } else {
+        // Buscar nombre en asistencia si está ahí
+        const asistente = asistenciaData.find(a => a.Email?.trim()?.toLowerCase() === email);
+        const nombre = asistente ? `${asistente.Nombre || ''} ${asistente.Apellidos || ''}`.trim() : 
+                      (row.Nombre ? `${row.Nombre || ''} ${row.Apellidos || ''}`.trim() : 'Sin nombre');
+        const rol = row.Rol?.trim() || 'Sin especificar';
+        const institucion = row.Institucion?.trim() || '';
+        const institucionNormalizada = normalizarInstitucion(institucion, email);
+        const esDocente = esDocenteColegio(email);
+        
+        let tipoDocente = 'noDocentes';
+        if (esDocente) {
+          tipoDocente = 'docentesColegio';
+        } else if (rol.toLowerCase().includes('docente') || rol.toLowerCase().includes('profesor')) {
+          tipoDocente = 'docentesExternos';
+        }
+        
+        todasLasPersonas.set(email, {
+          nombre: nombre,
+          email: email,
+          institucion: institucionNormalizada,
+          perfil: rol,
+          tipoDocente: tipoDocente,
+          esDocenteColegio: esDocente,
+          fuente: 'Acreditación'
+        });
+      }
+    });
+  }
+  
+  // Filtrar solo los que NO asistieron
+  const noAsistentes = Array.from(todasLasPersonas.values()).filter(persona => {
+    return !emailsAsistentes.has(persona.email);
+  });
+  
+  // Ordenar por institución y luego por nombre
+  noAsistentes.sort((a, b) => {
+    if (a.institucion !== b.institucion) {
+      return a.institucion.localeCompare(b.institucion);
+    }
+    return a.nombre.localeCompare(b.nombre);
+  });
+  
+  // Agrupar por institución para el filtro
+  const institucionesUnicas = [...new Set(noAsistentes.map(p => p.institucion))].sort();
+  const selectInstitucion = document.getElementById('filtro-institucion');
+  if (selectInstitucion) {
+    selectInstitucion.innerHTML = '<option value="">Todas las instituciones</option>';
+    institucionesUnicas.forEach(inst => {
+      const option = document.createElement('option');
+      option.value = inst;
+      option.textContent = inst;
+      selectInstitucion.appendChild(option);
+    });
+  }
+  
+  // Función para renderizar la lista
+  const renderizarLista = () => {
+    const filtroDocentesColegio = document.getElementById('filtro-docentes-colegio')?.checked ?? true;
+    const filtroDocentesExternos = document.getElementById('filtro-docentes-externos')?.checked ?? true;
+    const filtroNoDocentes = document.getElementById('filtro-no-docentes')?.checked ?? true;
+    const filtroInstitucion = document.getElementById('filtro-institucion')?.value || '';
+    
+    const filtrados = noAsistentes.filter(persona => {
+      if (!filtroDocentesColegio && persona.tipoDocente === 'docentesColegio') return false;
+      if (!filtroDocentesExternos && persona.tipoDocente === 'docentesExternos') return false;
+      if (!filtroNoDocentes && persona.tipoDocente === 'noDocentes') return false;
+      if (filtroInstitucion && persona.institucion !== filtroInstitucion) return false;
+      return true;
+    });
+    
+    if (filtrados.length === 0) {
+      container.innerHTML = `
+        <div style="text-align: center; padding: 40px; color: #666;">
+          <i class="fas fa-check-circle" style="font-size: 3rem; color: #28a745; margin-bottom: 16px; display: block; opacity: 0.7;"></i>
+          <p style="font-size: 16px; margin: 0;">No hay personas que cumplan los criterios de filtrado.</p>
+        </div>
+      `;
+      return;
+    }
+    
+    // Agrupar por institución
+    const agrupadosPorInstitucion = {};
+    filtrados.forEach(persona => {
+      if (!agrupadosPorInstitucion[persona.institucion]) {
+        agrupadosPorInstitucion[persona.institucion] = [];
+      }
+      agrupadosPorInstitucion[persona.institucion].push(persona);
+    });
+    
+    let html = `
+      <div style="margin-top: 20px;">
+        <div style="background: linear-gradient(135deg, rgba(128, 24, 54, 0.1) 0%, rgba(128, 24, 54, 0.05) 100%); padding: 16px; border-radius: 12px; margin-bottom: 24px; border-left: 4px solid #801836;">
+          <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+            <div>
+              <div style="font-size: 24px; font-weight: 700; color: #801836; margin-bottom: 4px;">${filtrados.length}</div>
+              <div style="font-size: 14px; color: #666;">Personas que no asistieron</div>
+            </div>
+            <div style="text-align: right;">
+              <div style="font-size: 12px; color: #666; margin-bottom: 4px;">Total sin filtrar:</div>
+              <div style="font-size: 18px; font-weight: 700; color: #801836;">${noAsistentes.length}</div>
+            </div>
+          </div>
+        </div>
+    `;
+    
+    Object.entries(agrupadosPorInstitucion)
+      .sort((a, b) => a[0].localeCompare(b[0]))
+      .forEach(([institucion, personas]) => {
+        html += `
+          <div style="margin-bottom: 32px;">
+            <h4 style="color: #801836; font-size: 18px; font-weight: 700; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; padding-bottom: 8px; border-bottom: 2px solid rgba(128, 24, 54, 0.2);">
+              <i class="fas fa-building" style="font-size: 16px;"></i>
+              ${institucion}
+              <span style="background: rgba(128, 24, 54, 0.1); color: #801836; padding: 4px 12px; border-radius: 12px; font-size: 14px; font-weight: 600; margin-left: auto;">${personas.length}</span>
+            </h4>
+            <div style="display: grid; gap: 12px;">
+        `;
+        
+        personas.forEach(persona => {
+          const iconoTipo = persona.tipoDocente === 'docentesColegio' ? 'fa-school' :
+                           persona.tipoDocente === 'docentesExternos' ? 'fa-user-graduate' : 'fa-user';
+          const colorTipo = persona.tipoDocente === 'docentesColegio' ? '#801836' :
+                           persona.tipoDocente === 'docentesExternos' ? '#9a1f42' : '#666';
+          const labelTipo = persona.tipoDocente === 'docentesColegio' ? 'Docente Colegio' :
+                           persona.tipoDocente === 'docentesExternos' ? 'Docente Externo' : 'No Docente';
+          
+          html += `
+            <div style="background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(247, 245, 246, 0.95) 100%); padding: 16px; border-radius: 12px; border-left: 4px solid ${colorTipo}; box-shadow: 0 2px 8px rgba(128, 24, 54, 0.08); transition: all 0.3s;" onmouseover="this.style.transform='translateX(5px)'; this.style.boxShadow='0 4px 12px rgba(128, 24, 54, 0.15)'" onmouseout="this.style.transform='translateX(0)'; this.style.boxShadow='0 2px 8px rgba(128, 24, 54, 0.08)'">
+              <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; flex-wrap: wrap;">
+                <div style="flex: 1; min-width: 200px;">
+                  <div style="font-size: 16px; font-weight: 700; color: #1a1a1a; margin-bottom: 8px; display: flex; align-items: center; gap: 8px;">
+                    <i class="fas ${iconoTipo}" style="font-size: 14px; color: ${colorTipo};"></i>
+                    ${persona.nombre}
+                  </div>
+                  <div style="font-size: 13px; color: #666; margin-bottom: 4px;">
+                    <i class="fas fa-envelope" style="font-size: 11px; margin-right: 6px;"></i>
+                    ${persona.email}
+                  </div>
+                  <div style="display: flex; gap: 12px; flex-wrap: wrap; margin-top: 8px;">
+                    <span style="background: linear-gradient(135deg, ${colorTipo} 0%, ${colorTipo}dd 100%); color: white; padding: 4px 10px; border-radius: 8px; font-size: 11px; font-weight: 600;">
+                      ${labelTipo}
+                    </span>
+                    <span style="background: rgba(128, 24, 54, 0.1); color: #801836; padding: 4px 10px; border-radius: 8px; font-size: 11px; font-weight: 600;">
+                      ${persona.perfil}
+                    </span>
+                    <span style="background: rgba(255, 193, 7, 0.15); color: #856404; padding: 4px 10px; border-radius: 8px; font-size: 11px; font-weight: 600;">
+                      ${persona.fuente}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          `;
+        });
+        
+        html += `
+            </div>
+          </div>
+        `;
+      });
+    
+    html += `</div>`;
+    container.innerHTML = html;
+  };
+  
+  // Renderizar inicialmente
+  renderizarLista();
+  
+  // Añadir event listeners a los filtros
+  document.getElementById('filtro-docentes-colegio')?.addEventListener('change', renderizarLista);
+  document.getElementById('filtro-docentes-externos')?.addEventListener('change', renderizarLista);
+  document.getElementById('filtro-no-docentes')?.addEventListener('change', renderizarLista);
+  document.getElementById('filtro-institucion')?.addEventListener('change', renderizarLista);
 }
 
 // Nueva función para gráfico de valoración de charla inspiracional mejorado

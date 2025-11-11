@@ -27,6 +27,15 @@
             <button class="nav-button" data-section="propuestas">
                 <i class="fas fa-lightbulb"></i> Propuestas
             </button>
+            <button class="nav-button" data-section="asistentes">
+                <i class="fas fa-user-check"></i> Asistentes
+            </button>
+            <button class="nav-button" data-section="no-asistentes">
+                <i class="fas fa-user-times"></i> No Asistentes
+            </button>
+            <button class="nav-button" data-section="balance">
+                <i class="fas fa-balance-scale"></i> Balance y Análisis
+            </button>
             <button class="nav-button" data-section="archivos">
                 <i class="fas fa-download"></i> Archivos
             </button>
@@ -44,7 +53,7 @@
 
             <div class="metrics-grid">
                 <div class="metric-card">
-                    <i class="fas fa-user-check" style="font-size: 2rem; color: var(--granate); margin-bottom: 12px; display: block;"></i>
+                    <i class="fas fa-user-check" style="font-size: 2rem; color: var(--granate); margin-bottom: gitpx; display: block;"></i>
                     <div class="metric-value">300</div>
                     <div class="metric-label">Acreditados</div>
                 </div>
@@ -77,11 +86,41 @@
 
 
             <div class="chart-container">
+                <h3>Comparación Acreditaciones vs Staff</h3>
+                <div class="chart-wrapper" style="min-height: 300px;">
+                    <div class="loading">
+                        <i class="fas fa-users" style="font-size: 2rem; color: #801836; margin-bottom: 12px; display: block; opacity: 0.5;"></i>
+                        <p>Cargando datos...</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="chart-container">
+                <h3>Net Promoter Score (NPS)</h3>
+                <div class="chart-wrapper" id="nps-chart" style="min-height: 300px;">
+                    <div class="loading">
+                        <i class="fas fa-chart-line" style="font-size: 2rem; color: #801836; margin-bottom: 12px; display: block; opacity: 0.5;"></i>
+                        <p>Cargando cálculo de NPS...</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="chart-container">
                 <h3>Comparación de Roles: Acreditados vs Asistentes</h3>
                 <div class="chart-wrapper" style="min-height: 300px;">
                     <div class="loading">
                         <i class="fas fa-chart-line" style="font-size: 2rem; color: #801836; margin-bottom: 12px; display: block; opacity: 0.5;"></i>
                         <p>Cargando datos...</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="chart-container" id="inscripciones-analysis" style="display: none;">
+                <h3>Análisis de Inscripciones</h3>
+                <div class="chart-wrapper" style="min-height: 300px;">
+                    <div class="loading">
+                        <i class="fas fa-user-plus" style="font-size: 2rem; color: #801836; margin-bottom: 12px; display: block; opacity: 0.5;"></i>
+                        <p>Cargando análisis de inscripciones...</p>
                     </div>
                 </div>
             </div>
@@ -212,6 +251,139 @@
                         </div>
                     </li>
                 </ul>
+            </div>
+        </section>
+
+        <!-- Sección: Asistentes -->
+        <section id="asistentes" class="section">
+            <h2 class="section-title">Listado de Asistentes</h2>
+            
+            <div class="description-box">
+                <p>Personas que asistieron al evento y están registradas en talleres.</p>
+            </div>
+
+            <div class="chart-container">
+                <h3>Filtros</h3>
+                <div class="chart-wrapper" style="padding: 20px;">
+                    <div style="display: flex; gap: 16px; flex-wrap: wrap; align-items: center;">
+                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                            <input type="checkbox" id="filtro-asistentes-docentes-colegio" checked style="cursor: pointer;">
+                            <span>Docentes del Colegio</span>
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                            <input type="checkbox" id="filtro-asistentes-docentes-externos" checked style="cursor: pointer;">
+                            <span>Docentes Externos</span>
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                            <input type="checkbox" id="filtro-asistentes-no-docentes" checked style="cursor: pointer;">
+                            <span>No Docentes</span>
+                        </label>
+                        <select id="filtro-asistentes-institucion" style="padding: 8px 12px; border: 1px solid rgba(128, 24, 54, 0.2); border-radius: 8px; background: white; cursor: pointer;">
+                            <option value="">Todas las instituciones</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <div class="chart-container">
+                <h3>Listado de Asistentes</h3>
+                <div class="chart-wrapper" id="lista-asistentes" style="min-height: 300px;">
+                    <div class="loading">
+                        <i class="fas fa-user-check" style="font-size: 2rem; color: #801836; margin-bottom: 12px; display: block; opacity: 0.5;"></i>
+                        <p>Cargando listado de asistentes...</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Sección: No Asistentes -->
+        <section id="no-asistentes" class="section">
+            <h2 class="section-title">Listado de No Asistentes</h2>
+            
+            <div class="description-box">
+                <p>Personas que se inscribieron o fueron acreditadas pero no asistieron al evento (sin talleres registrados).</p>
+            </div>
+
+            <div class="chart-container">
+                <h3>Filtros</h3>
+                <div class="chart-wrapper" style="padding: 20px;">
+                    <div style="display: flex; gap: 16px; flex-wrap: wrap; align-items: center;">
+                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                            <input type="checkbox" id="filtro-docentes-colegio" checked style="cursor: pointer;">
+                            <span>Docentes del Colegio</span>
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                            <input type="checkbox" id="filtro-docentes-externos" checked style="cursor: pointer;">
+                            <span>Docentes Externos</span>
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                            <input type="checkbox" id="filtro-no-docentes" checked style="cursor: pointer;">
+                            <span>No Docentes</span>
+                        </label>
+                        <select id="filtro-institucion" style="padding: 8px 12px; border: 1px solid rgba(128, 24, 54, 0.2); border-radius: 8px; background: white; cursor: pointer;">
+                            <option value="">Todas las instituciones</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <div class="chart-container">
+                <h3>Listado de No Asistentes</h3>
+                <div class="chart-wrapper" id="lista-no-asistentes" style="min-height: 300px;">
+                    <div class="loading">
+                        <i class="fas fa-user-times" style="font-size: 2rem; color: #801836; margin-bottom: 12px; display: block; opacity: 0.5;"></i>
+                        <p>Cargando listado de no asistentes...</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Sección: Balance y Análisis -->
+        <section id="balance" class="section">
+            <h2 class="section-title">Balance y Análisis de Datos</h2>
+            
+            <div class="description-box">
+                <p>Comparativa entre el XIII Foro de Innovación Educativa (2024) y el XIV Foro de Innovación Educativa - HUMANIA (2025).</p>
+            </div>
+
+            <div class="chart-container">
+                <h3>Comparativa General</h3>
+                <div class="chart-wrapper" id="comparativa-general" style="min-height: 300px;">
+                    <div class="loading">
+                        <i class="fas fa-balance-scale" style="font-size: 2rem; color: #801836; margin-bottom: 12px; display: block; opacity: 0.5;"></i>
+                        <p>Cargando comparativa...</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="chart-container">
+                <h3>Comparativa de Asistencia</h3>
+                <div class="chart-wrapper" id="comparativa-asistencia" style="min-height: 300px;">
+                    <div class="loading">
+                        <i class="fas fa-users" style="font-size: 2rem; color: #801836; margin-bottom: 12px; display: block; opacity: 0.5;"></i>
+                        <p>Cargando comparativa de asistencia...</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="chart-container">
+                <h3>Comparativa de Valoraciones</h3>
+                <div class="chart-wrapper" id="comparativa-valoraciones" style="min-height: 300px;">
+                    <div class="loading">
+                        <i class="fas fa-star" style="font-size: 2rem; color: #801836; margin-bottom: 12px; display: block; opacity: 0.5;"></i>
+                        <p>Cargando comparativa de valoraciones...</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="chart-container">
+                <h3>Comparativa de NPS</h3>
+                <div class="chart-wrapper" id="comparativa-nps" style="min-height: 300px;">
+                    <div class="loading">
+                        <i class="fas fa-chart-line" style="font-size: 2rem; color: #801836; margin-bottom: 12px; display: block; opacity: 0.5;"></i>
+                        <p>Cargando comparativa de NPS...</p>
+                    </div>
+                </div>
             </div>
         </section>
 
