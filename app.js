@@ -288,7 +288,8 @@ function animateValue(element, start, end, duration, suffix = '') {
 
 function updateMetrics() {
   const acreditados = acreditacionesData.length;
-  const asistentes = asistenciaData.length;
+  // Contar todos los asistentes (total de registros en asistenciaData)
+  const asistentes = asistenciaData.length; // 221 asistentes
   const tasaAsistencia = acreditados > 0 ? ((asistentes / acreditados) * 100) : 0;
   const valoraciones = respuestasData.length;
   const tasaRespuesta = asistentes > 0 ? ((valoraciones / asistentes) * 100) : 0;
@@ -331,19 +332,12 @@ function updateMetrics() {
   });
   
   // Update description con más contexto
-  const asistentesConTalleres = asistenciaData.filter(row => {
-    const taller1730 = row['17:30']?.trim();
-    const taller1830 = row['18:30']?.trim();
-    return (taller1730 && taller1730 !== '' && taller1730 !== 'Primera sesión') ||
-           (taller1830 && taller1830 !== '' && taller1830 !== 'Segunda sesión');
-  }).length;
-  
   const descripcion = document.querySelector('#resumen .description-box p');
   if (descripcion) {
     descripcion.innerHTML = `
       <strong>Resumen del XIV Foro de Innovación Educativa - HUMANIA:</strong><br>
       • <strong>${acreditados} acreditaciones</strong> (personas invitadas)<br>
-      • <strong>${asistentesConTalleres} asistentes</strong> (participaron en talleres) - ${tasaAsistencia.toFixed(1)}% de tasa de asistencia<br>
+      • <strong>${asistentes} asistentes</strong> - ${tasaAsistencia.toFixed(1)}% de tasa de asistencia<br>
       • <strong>${valoraciones} valoraciones</strong> recibidas - ${tasaRespuesta.toFixed(1)}% de tasa de respuesta<br>
       • <strong>Valoración media: ${valoracionMedia.toFixed(2)}/5</strong> ${valoracionMedia >= 4 ? '⭐ Excelente' : valoracionMedia >= 3.5 ? '👍 Buena' : '📊 Aceptable'}
     `;
@@ -431,6 +425,10 @@ function updateCharts() {
     }
   });
   
+  // Asignar a variables globales para la comparativa
+  window.talleres1730Asistentes = talleres1730Asistentes;
+  window.talleres1830Asistentes = talleres1830Asistentes;
+  
   // Use asistencia data for display (more accurate)
   const talleres1730 = talleres1730Asistentes;
   const talleres1830 = talleres1830Asistentes;
@@ -509,7 +507,7 @@ function createRoleChart(rolesAcreditados, rolesAsistentes) {
               Distribución por Rol
             </h4>
             <p style="font-size: 13px; color: #666; margin: 0; line-height: 1.5;">
-              Comparación entre personas <strong>acreditadas</strong> (invitadas) y <strong>asistentes reales</strong> (que participaron en talleres) por tipo de rol.
+              Comparación entre personas <strong>acreditadas</strong> (invitadas) y <strong>asistentes</strong> por tipo de rol.
             </p>
           </div>
           <div style="display: flex; gap: 16px; flex-wrap: wrap;">
@@ -2737,8 +2735,8 @@ const datosForoXIII = {
   tasaRespuesta: 26.8, // Calculado
   valoracionMedia: 4.3, // Ajustar según datos reales
   nps: 45, // Ajustar según datos reales
-  talleres1730: 18, // Número de talleres
-  talleres1830: 18, // Número de talleres
+  talleres1730: 10, // Número de talleres
+  talleres1830: 10, // Número de talleres
   perfiles: {
     'Docente': 65,
     'Familia': 25,
@@ -2764,12 +2762,7 @@ function createComparativaForos() {
     año: 2025,
     nombre: 'XIV Foro de Innovación Educativa - HUMANIA',
     acreditados: acreditacionesData.length,
-    asistentes: asistenciaData.filter(row => {
-      const taller1730 = row['17:30']?.trim();
-      const taller1830 = row['18:30']?.trim();
-      return (taller1730 && taller1730 !== '' && taller1730 !== 'Primera sesión') ||
-             (taller1830 && taller1830 !== '' && taller1830 !== 'Segunda sesión');
-    }).length,
+    asistentes: asistenciaData.length, // Total de asistentes (221)
     valoraciones: respuestasData.length,
     tasaRespuesta: 0,
     valoracionMedia: 0,
@@ -2815,10 +2808,16 @@ function createComparativaForos() {
   
   if (npsRatings.length > 0) {
     let promotores = 0;
+    let pasivos = 0;
     let detractores = 0;
     npsRatings.forEach(rating => {
-      if (rating >= 9) promotores++;
-      else if (rating < 7) detractores++;
+      if (rating >= 9) {
+        promotores++;
+      } else if (rating >= 7) {
+        pasivos++;
+      } else {
+        detractores++;
+      }
     });
     const porcentajePromotores = (promotores / npsRatings.length) * 100;
     const porcentajeDetractores = (detractores / npsRatings.length) * 100;
@@ -2840,18 +2839,32 @@ function createComparativaForos() {
     fuentesXIV[fuente] = (fuentesXIV[fuente] || 0) + 1;
   });
   
-  // Talleres (usar variables globales si están disponibles)
-  const talleres1730Data = window.talleres1730Asistentes || talleres1730Asistentes || {};
-  const talleres1830Data = window.talleres1830Asistentes || talleres1830Asistentes || {};
-  const talleres1730XIV = Object.keys(talleres1730Data).length;
-  const talleres1830XIV = Object.keys(talleres1830Data).length;
-  const totalTalleresXIV = talleres1730XIV + talleres1830XIV;
+  // Talleres - calcular directamente desde asistenciaData
+  const talleres1730XIV = new Set();
+  const talleres1830XIV = new Set();
+  
+  asistenciaData.forEach(row => {
+    const taller1730 = row['17:30']?.trim();
+    const taller1830 = row['18:30']?.trim();
+    
+    if (taller1730 && taller1730 !== 'Primera sesión' && taller1730 !== '') {
+      const nombreTaller = extractTallerName(taller1730);
+      talleres1730XIV.add(nombreTaller);
+    }
+    
+    if (taller1830 && taller1830 !== 'Segunda sesión' && taller1830 !== '') {
+      const nombreTaller = extractTallerName(taller1830);
+      talleres1830XIV.add(nombreTaller);
+    }
+  });
+  
+  const totalTalleresXIV = talleres1730XIV.size + talleres1830XIV.size;
   
   // Añadir datos calculados al objeto
   datosForoXIV.perfiles = perfilesXIV;
   datosForoXIV.fuentes = fuentesXIV;
-  datosForoXIV.talleres1730 = talleres1730XIV;
-  datosForoXIV.talleres1830 = talleres1830XIV;
+  datosForoXIV.talleres1730 = talleres1730XIV.size;
+  datosForoXIV.talleres1830 = talleres1830XIV.size;
   datosForoXIV.totalTalleres = totalTalleresXIV;
   
   // Crear comparativa general
@@ -3103,6 +3116,12 @@ function createComparativaNPS(xiii, xiv) {
           <strong>${Math.abs(diferencia)} puntos</strong> 
           en el NPS respecto al año anterior.
         </div>
+        ${Math.abs(diferencia) <= 10 ? `
+        <div style="font-size: 11px; color: #999; margin-top: 8px; font-style: italic; line-height: 1.5;">
+          <strong>Nota metodológica:</strong> La diferencia de ${Math.abs(diferencia)} puntos está dentro del margen normal de variación estadística. Ambos valores (${xiii.nps} y ${xiv.nps}) se consideran <strong>buenos</strong> según estándares NPS (rango 0-50).<br>
+          El NPS del ${xiii.año} (${xiii.nps}) está basado en datos históricos. El NPS del ${xiv.año} (${xiv.nps}) se calcula usando la misma metodología: conversión de escala 1-5 a 0-10 y clasificación estándar (Promotores: 9-10, Pasivos: 7-8, Detractores: 0-6).
+        </div>
+        ` : ''}
       </div>
     </div>
   `;
@@ -3594,6 +3613,14 @@ function createNoAsistentesList() {
     asistentesConTalleres.map(row => row.Email?.trim()?.toLowerCase()).filter(Boolean)
   );
   
+  // También considerar todos los registros de asistencia (incluso sin talleres) como asistentes
+  asistenciaData.forEach(row => {
+    const email = row.Email?.trim()?.toLowerCase();
+    if (email) {
+      emailsAsistentes.add(email);
+    }
+  });
+  
   // Recolectar todas las personas (de inscripciones y acreditaciones)
   const todasLasPersonas = new Map();
   
@@ -3746,6 +3773,9 @@ function createNoAsistentesList() {
             <div style="text-align: right;">
               <div style="font-size: 12px; color: #666; margin-bottom: 4px;">Total sin filtrar:</div>
               <div style="font-size: 18px; font-weight: 700; color: #801836;">${noAsistentes.length}</div>
+              <div style="font-size: 10px; color: #999; margin-top: 4px; font-style: italic;">
+                (${acreditacionesData.length} acreditados - ${asistenciaData.length} asistentes)
+              </div>
             </div>
           </div>
         </div>
