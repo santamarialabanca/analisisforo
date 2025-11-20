@@ -1062,3 +1062,89 @@ button:focus-visible,
     border-radius: 3px;
   }
 }
+
+/* Estilos para impresión */
+@media print {
+  * {
+    background: white !important;
+    color: black !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
+  }
+  
+  body {
+    font-size: 12pt;
+    line-height: 1.5;
+  }
+  
+  .header,
+  .nav,
+  .footer,
+  .scroll-to-top,
+  .download-button,
+  button,
+  .nav-button {
+    display: none !important;
+  }
+  
+  .section {
+    display: block !important;
+    page-break-inside: avoid;
+  }
+  
+  .section-title {
+    page-break-after: avoid;
+    border-bottom: 2px solid black;
+    padding-bottom: 0.5em;
+    margin-bottom: 1em;
+  }
+  
+  .metric-card,
+  .chart-container {
+    page-break-inside: avoid;
+    border: 1px solid #ccc;
+    padding: 1em;
+    margin-bottom: 1em;
+  }
+  
+  .metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1em;
+  }
+  
+  a {
+    text-decoration: underline;
+  }
+  
+  a[href]:after {
+    content: " (" attr(href) ")";
+    font-size: 0.8em;
+  }
+  
+  /* Ocultar elementos interactivos */
+  .loading,
+  .chart-wrapper:empty {
+    display: none !important;
+  }
+  
+  /* Asegurar que los gráficos se impriman */
+  .chart-wrapper {
+    min-height: auto !important;
+  }
+  
+  @page {
+    margin: 2cm;
+    size: A4;
+  }
+  
+  /* Evitar cortes de página en elementos importantes */
+  h2, h3, h4 {
+    page-break-after: avoid;
+  }
+  
+  .metric-card,
+  .chart-container {
+    page-break-inside: avoid;
+  }
+}

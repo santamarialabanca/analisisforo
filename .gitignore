@@ -1,0 +1,40 @@
+# Archivos del sistema
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Archivos temporales
+*.tmp
+*.temp
+*.log
+*.swp
+*~
+
+# Archivos de datos sensibles (opcional - descomentar si no quieres versionar los CSV)
+# *.csv
+# *.xlsx
+# *.xls
+
+# Archivos de backup
+*.bak
+*.backup
+
+# Archivos de IDE
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# Node modules (si se añade Node.js en el futuro)
+node_modules/
+package-lock.json
+yarn.lock
+
+# Archivos compilados
+dist/
+build/
+
+# Archivos de entorno
+.env
+.env.local
+
