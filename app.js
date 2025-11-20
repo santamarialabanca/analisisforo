@@ -472,8 +472,24 @@ function updateCharts() {
 }
 
 function createRoleChart(rolesAcreditados, rolesAsistentes) {
-  const container = document.querySelector('#resumen .chart-container:last-of-type');
-  if (!container) return;
+  // Buscar el contenedor correcto por el título
+  const containers = document.querySelectorAll('#resumen .chart-container');
+  let container = null;
+  for (const c of containers) {
+    const h3 = c.querySelector('h3');
+    if (h3 && h3.textContent.includes('Comparación de Roles')) {
+      container = c;
+      break;
+    }
+  }
+  // Si no se encuentra, usar el último disponible
+  if (!container && containers.length > 0) {
+    container = containers[containers.length - 1];
+  }
+  if (!container) {
+    console.warn('createRoleChart: No se encontró el contenedor');
+    return;
+  }
   
   const roles = [...new Set([...Object.keys(rolesAcreditados), ...Object.keys(rolesAsistentes)])];
   
@@ -606,6 +622,8 @@ function createRoleChart(rolesAcreditados, rolesAsistentes) {
   
   const wrapper = container.querySelector('.chart-wrapper');
   if (wrapper) {
+    // Eliminar elementos de carga
+    wrapper.querySelectorAll('.loading').forEach(el => el.remove());
     wrapper.innerHTML = html;
     // Animar las barras
     setTimeout(() => {
@@ -613,6 +631,8 @@ function createRoleChart(rolesAcreditados, rolesAsistentes) {
         bar.style.width = bar.getAttribute('data-width') + '%';
       });
     }, 100);
+  } else {
+    console.warn('createRoleChart: No se encontró .chart-wrapper');
   }
 }
 
@@ -692,7 +712,21 @@ function extractTallerName(tallerText) {
 }
 
 function createWorkshopCharts(talleres1730, talleres1830) {
-  const containers = document.querySelectorAll('#talleres .chart-container');
+  // Buscar contenedores por título en lugar de asumir el orden
+  const allContainers = document.querySelectorAll('#talleres .chart-container');
+  let container1730 = null;
+  let container1830 = null;
+  
+  for (const c of allContainers) {
+    const h3 = c.querySelector('h3');
+    if (h3) {
+      if (h3.textContent.includes('17:30')) {
+        container1730 = c;
+      } else if (h3.textContent.includes('18:30')) {
+        container1830 = c;
+      }
+    }
+  }
   
   // Función auxiliar para crear gráfico de barras horizontal
   function createBarChart(sortedData, maxCount) {
@@ -788,13 +822,16 @@ function createWorkshopCharts(talleres1730, talleres1830) {
     return html;
   }
   
-  if (containers[0]) {
+  // Procesar sesión 17:30
+  if (container1730) {
     const sorted1730 = Object.entries(talleres1730)
       .sort((a, b) => b[1] - a[1]);
     const max1730 = sorted1730.length > 0 ? sorted1730[0][1] : 1;
     
-    const wrapper = containers[0].querySelector('.chart-wrapper');
+    const wrapper = container1730.querySelector('.chart-wrapper');
     if (wrapper) {
+      // Eliminar elementos de carga
+      wrapper.querySelectorAll('.loading').forEach(el => el.remove());
       wrapper.innerHTML = createBarChart(sorted1730, max1730);
       // Animar las barras
       setTimeout(() => {
@@ -802,16 +839,23 @@ function createWorkshopCharts(talleres1730, talleres1830) {
           bar.style.width = bar.getAttribute('data-width') + '%';
         });
       }, 100);
+    } else {
+      console.warn('createWorkshopCharts: No se encontró .chart-wrapper para 17:30');
     }
+  } else {
+    console.warn('createWorkshopCharts: No se encontró el contenedor para 17:30');
   }
   
-  if (containers[1]) {
+  // Procesar sesión 18:30
+  if (container1830) {
     const sorted1830 = Object.entries(talleres1830)
       .sort((a, b) => b[1] - a[1]);
     const max1830 = sorted1830.length > 0 ? sorted1830[0][1] : 1;
     
-    const wrapper = containers[1].querySelector('.chart-wrapper');
+    const wrapper = container1830.querySelector('.chart-wrapper');
     if (wrapper) {
+      // Eliminar elementos de carga
+      wrapper.querySelectorAll('.loading').forEach(el => el.remove());
       wrapper.innerHTML = createBarChart(sorted1830, max1830);
       // Animar las barras
       setTimeout(() => {
@@ -819,25 +863,29 @@ function createWorkshopCharts(talleres1730, talleres1830) {
           bar.style.width = bar.getAttribute('data-width') + '%';
         });
       }, 100);
+    } else {
+      console.warn('createWorkshopCharts: No se encontró .chart-wrapper para 18:30');
     }
+  } else {
+    console.warn('createWorkshopCharts: No se encontró el contenedor para 18:30');
   }
 }
 
 // Función para crear gráfico de comparación Acreditaciones vs Staff
 function createAcreditacionesStaffChart() {
-  const container = document.querySelector('#resumen .chart-container');
-  if (!container || !container.querySelector('h3')?.textContent?.includes('Comparación Acreditaciones vs Staff')) {
-    // Buscar el contenedor correcto
-    const containers = document.querySelectorAll('#resumen .chart-container');
-    for (const c of containers) {
-      if (c.querySelector('h3')?.textContent?.includes('Comparación Acreditaciones vs Staff')) {
-        container = c;
-        break;
-      }
+  // Buscar el contenedor correcto por el título
+  const containers = document.querySelectorAll('#resumen .chart-container');
+  let container = null;
+  for (const c of containers) {
+    const h3 = c.querySelector('h3');
+    if (h3 && h3.textContent.includes('Comparación Acreditaciones vs Staff')) {
+      container = c;
+      break;
     }
-    if (!container || !container.querySelector('h3')?.textContent?.includes('Comparación Acreditaciones vs Staff')) {
-      return;
-    }
+  }
+  if (!container) {
+    console.warn('createAcreditacionesStaffChart: No se encontró el contenedor');
+    return;
   }
   
   // Calcular acreditados totales
@@ -1053,7 +1101,11 @@ function createResumenTalleres(talleres1730, talleres1830) {
   
   const wrapper = container.querySelector('.chart-wrapper');
   if (wrapper) {
+    // Eliminar elementos de carga
+    wrapper.querySelectorAll('.loading').forEach(el => el.remove());
     wrapper.innerHTML = html;
+  } else {
+    console.warn('createResumenTalleres: No se encontró .chart-wrapper');
   }
 }
 
@@ -1127,7 +1179,11 @@ function createResumenValoracion(ratings, valoracionCharla) {
   
   const wrapper = container.querySelector('.chart-wrapper');
   if (wrapper) {
+    // Eliminar elementos de carga
+    wrapper.querySelectorAll('.loading').forEach(el => el.remove());
     wrapper.innerHTML = html;
+  } else {
+    console.warn('createResumenValoracion: No se encontró .chart-wrapper');
   }
 }
 
@@ -1224,6 +1280,8 @@ function createRatingChart(ratings) {
   
   const wrapper = container.querySelector('.chart-wrapper');
   if (wrapper) {
+    // Eliminar elementos de carga
+    wrapper.querySelectorAll('.loading').forEach(el => el.remove());
     wrapper.innerHTML = html;
     // Animar las barras
     setTimeout(() => {
@@ -1231,6 +1289,8 @@ function createRatingChart(ratings) {
         bar.style.height = bar.getAttribute('data-height') + 'px';
       });
     }, 100);
+  } else {
+    console.warn('createRatingChart: No se encontró .chart-wrapper');
   }
   
   // Create workshop rating charts
@@ -1383,7 +1443,13 @@ function createWorkshopRatings() {
   // Función auxiliar para crear gráfico de valoraciones de talleres
   function createWorkshopRatingChart(sortedData, containerSelector) {
     const container = document.querySelector(containerSelector);
-    if (!container) return;
+    if (!container) {
+      console.warn(`createWorkshopRatingChart: No se encontró ${containerSelector}`);
+      return;
+    }
+    
+    // Eliminar elementos de carga
+    container.querySelectorAll('.loading').forEach(el => el.remove());
     
     let html = '<div style="display: grid; gap: 16px; margin-top: 20px;">';
     if (sortedData.length > 0) {
@@ -1512,8 +1578,26 @@ function createWorkshopRatings() {
 
 // Nueva función para gráfico de perfiles con gráfico de quesito
 function createProfileChart(perfiles) {
-  const container = document.querySelector('#resumen .chart-container:last-of-type');
-  if (!container) return;
+  // Buscar el contenedor correcto - puede estar en diferentes posiciones
+  const containers = document.querySelectorAll('#resumen .chart-container');
+  let container = null;
+  // Buscar uno que no tenga contenido específico o sea el último disponible
+  for (let i = containers.length - 1; i >= 0; i--) {
+    const c = containers[i];
+    const h3 = c.querySelector('h3');
+    if (h3 && (h3.textContent.includes('Perfil') || h3.textContent.includes('Encuestados'))) {
+      container = c;
+      break;
+    }
+  }
+  // Si no se encuentra, usar el último
+  if (!container && containers.length > 0) {
+    container = containers[containers.length - 1];
+  }
+  if (!container) {
+    console.warn('createProfileChart: No se encontró el contenedor');
+    return;
+  }
   
   const sorted = Object.entries(perfiles).sort((a, b) => b[1] - a[1]);
   const total = Object.values(perfiles).reduce((sum, val) => sum + val, 0);
@@ -1628,6 +1712,8 @@ function createProfileChart(perfiles) {
   
   const wrapper = container.querySelector('.chart-wrapper');
   if (wrapper) {
+    // Eliminar elementos de carga
+    wrapper.querySelectorAll('.loading').forEach(el => el.remove());
     wrapper.innerHTML = wrapper.innerHTML + html;
     // Animar el gráfico de quesito y las barras
     setTimeout(() => {
@@ -1638,13 +1724,33 @@ function createProfileChart(perfiles) {
         bar.style.width = bar.getAttribute('data-width') + '%';
       });
     }, 100);
+  } else {
+    console.warn('createProfileChart: No se encontró .chart-wrapper');
   }
 }
 
 // Nueva función para gráfico de fuentes de información con barras horizontales mejoradas
 function createSourceChart(fuentes) {
-  const container = document.querySelector('#resumen .chart-container:last-of-type');
-  if (!container) return;
+  // Buscar el contenedor correcto
+  const containers = document.querySelectorAll('#resumen .chart-container');
+  let container = null;
+  // Buscar uno que no tenga contenido específico o sea el último disponible
+  for (let i = containers.length - 1; i >= 0; i--) {
+    const c = containers[i];
+    const h3 = c.querySelector('h3');
+    if (h3 && (h3.textContent.includes('Fuentes') || h3.textContent.includes('enteraste'))) {
+      container = c;
+      break;
+    }
+  }
+  // Si no se encuentra, usar el último
+  if (!container && containers.length > 0) {
+    container = containers[containers.length - 1];
+  }
+  if (!container) {
+    console.warn('createSourceChart: No se encontró el contenedor');
+    return;
+  }
   
   const sorted = Object.entries(fuentes).sort((a, b) => b[1] - a[1]);
   const maxCount = Math.max(...Object.values(fuentes), 1);
@@ -1708,6 +1814,8 @@ function createSourceChart(fuentes) {
   
   const wrapper = container.querySelector('.chart-wrapper');
   if (wrapper) {
+    // Eliminar elementos de carga
+    wrapper.querySelectorAll('.loading').forEach(el => el.remove());
     wrapper.innerHTML = wrapper.innerHTML + html;
     // Animar las barras
     setTimeout(() => {
@@ -1715,17 +1823,28 @@ function createSourceChart(fuentes) {
         bar.style.width = bar.getAttribute('data-width') + '%';
       });
     }, 100);
+  } else {
+    console.warn('createSourceChart: No se encontró .chart-wrapper');
   }
 }
 
 // Función para analizar datos de inscripciones
 function createInscripcionesAnalysis() {
   const container = document.querySelector('#inscripciones-analysis');
-  if (!container) return;
+  if (!container) {
+    console.warn('createInscripcionesAnalysis: No se encontró #inscripciones-analysis');
+    return;
+  }
   
   container.style.display = 'block';
   const wrapper = container.querySelector('.chart-wrapper');
-  if (!wrapper) return;
+  if (!wrapper) {
+    console.warn('createInscripcionesAnalysis: No se encontró .chart-wrapper');
+    return;
+  }
+  
+  // Eliminar elementos de carga
+  wrapper.querySelectorAll('.loading').forEach(el => el.remove());
   
   // Análisis de perfiles de inscripción
   const perfilesInscripcion = {};
@@ -2368,6 +2487,8 @@ function createInscripcionesAnalysis() {
     </div>
   `;
   
+  // Eliminar elementos de carga (ya se hizo antes, pero por si acaso)
+  wrapper.querySelectorAll('.loading').forEach(el => el.remove());
   wrapper.innerHTML = html;
   
   // Animar las barras
@@ -2381,7 +2502,10 @@ function createInscripcionesAnalysis() {
 // Función para calcular y mostrar el Net Promoter Score (NPS)
 function createNPSChart() {
   const container = document.querySelector('#nps-chart');
-  if (!container) return;
+  if (!container) {
+    console.warn('createNPSChart: No se encontró #nps-chart');
+    return;
+  }
   
   // Obtener todas las respuestas a la pregunta de recomendación del Foro
   const npsRatings = [];
@@ -2399,6 +2523,9 @@ function createNPSChart() {
       }
     }
   });
+  
+  // Eliminar elementos de carga
+  container.querySelectorAll('.loading').forEach(el => el.remove());
   
   if (npsRatings.length === 0) {
     container.innerHTML = `
@@ -2573,14 +2700,29 @@ function createNPSChart() {
     </div>
   `;
   
-  container.innerHTML = html;
-  
-  // Animar las barras
-  setTimeout(() => {
-    container.querySelectorAll('[data-width]').forEach(bar => {
-      bar.style.width = bar.getAttribute('data-width') + '%';
-    });
-  }, 100);
+  const wrapper = container.querySelector('.chart-wrapper');
+  if (wrapper) {
+    // Eliminar elementos de carga
+    wrapper.querySelectorAll('.loading').forEach(el => el.remove());
+    wrapper.innerHTML = html;
+    
+    // Animar las barras
+    setTimeout(() => {
+      wrapper.querySelectorAll('[data-width]').forEach(bar => {
+        bar.style.width = bar.getAttribute('data-width') + '%';
+      });
+    }, 100);
+  } else {
+    // Si no hay wrapper, usar el container directamente
+    container.innerHTML = html;
+    
+    // Animar las barras
+    setTimeout(() => {
+      container.querySelectorAll('[data-width]').forEach(bar => {
+        bar.style.width = bar.getAttribute('data-width') + '%';
+      });
+    }, 100);
+  }
 }
 
 // Datos del Foro XIII (extraídos del balance)
@@ -2725,7 +2867,13 @@ function createComparativaForos() {
 // Función para crear la comparativa general
 function createComparativaGeneral(xiii, xiv) {
   const container = document.querySelector('#comparativa-general');
-  if (!container) return;
+  if (!container) {
+    console.warn('createComparativaGeneral: No se encontró #comparativa-general');
+    return;
+  }
+  
+  // Eliminar elementos de carga
+  container.querySelectorAll('.loading').forEach(el => el.remove());
   
   const metricas = [
     { label: 'Acreditados', xiii: xiii.acreditados, xiv: xiv.acreditados, icon: 'fa-user-check', color: '#801836' },
@@ -2802,7 +2950,13 @@ function createComparativaGeneral(xiii, xiv) {
 // Función para crear la comparativa de asistencia
 function createComparativaAsistencia(xiii, xiv) {
   const container = document.querySelector('#comparativa-asistencia');
-  if (!container) return;
+  if (!container) {
+    console.warn('createComparativaAsistencia: No se encontró #comparativa-asistencia');
+    return;
+  }
+  
+  // Eliminar elementos de carga
+  container.querySelectorAll('.loading').forEach(el => el.remove());
   
   const maxAsistentes = Math.max(xiii.asistentes, xiv.asistentes, 1);
   const porcentajeXIII = (xiii.asistentes / maxAsistentes) * 100;
@@ -2851,7 +3005,13 @@ function createComparativaAsistencia(xiii, xiv) {
 // Función para crear la comparativa de valoraciones
 function createComparativaValoraciones(xiii, xiv) {
   const container = document.querySelector('#comparativa-valoraciones');
-  if (!container) return;
+  if (!container) {
+    console.warn('createComparativaValoraciones: No se encontró #comparativa-valoraciones');
+    return;
+  }
+  
+  // Eliminar elementos de carga
+  container.querySelectorAll('.loading').forEach(el => el.remove());
   
   const diferencia = parseFloat(xiv.valoracionMedia) - parseFloat(xiii.valoracionMedia);
   const esPositivo = diferencia >= 0;
@@ -2898,7 +3058,13 @@ function createComparativaValoraciones(xiii, xiv) {
 // Función para crear la comparativa de NPS
 function createComparativaNPS(xiii, xiv) {
   const container = document.querySelector('#comparativa-nps');
-  if (!container) return;
+  if (!container) {
+    console.warn('createComparativaNPS: No se encontró #comparativa-nps');
+    return;
+  }
+  
+  // Eliminar elementos de carga
+  container.querySelectorAll('.loading').forEach(el => el.remove());
   
   const diferencia = xiv.nps - xiii.nps;
   const esPositivo = diferencia >= 0;
@@ -2947,7 +3113,13 @@ function createComparativaNPS(xiii, xiv) {
 // Función para crear la comparativa de talleres
 function createComparativaTalleres(xiii, xiv) {
   const container = document.querySelector('#comparativa-talleres');
-  if (!container) return;
+  if (!container) {
+    console.warn('createComparativaTalleres: No se encontró #comparativa-talleres');
+    return;
+  }
+  
+  // Eliminar elementos de carga
+  container.querySelectorAll('.loading').forEach(el => el.remove());
   
   const totalTalleresXIII = xiii.talleres1730 + xiii.talleres1830;
   const diferencia = xiv.totalTalleres - totalTalleresXIII;
@@ -3015,7 +3187,13 @@ function createComparativaTalleres(xiii, xiv) {
 // Función para crear la comparativa de perfiles
 function createComparativaPerfiles(xiii, xiv) {
   const container = document.querySelector('#comparativa-perfiles');
-  if (!container) return;
+  if (!container) {
+    console.warn('createComparativaPerfiles: No se encontró #comparativa-perfiles');
+    return;
+  }
+  
+  // Eliminar elementos de carga
+  container.querySelectorAll('.loading').forEach(el => el.remove());
   
   // Normalizar perfiles para comparación
   const perfilesUnicos = new Set([...Object.keys(xiii.perfiles || {}), ...Object.keys(xiv.perfiles || {})]);
@@ -3076,7 +3254,13 @@ function createComparativaPerfiles(xiii, xiv) {
 // Función para crear la comparativa de fuentes
 function createComparativaFuentes(xiii, xiv) {
   const container = document.querySelector('#comparativa-fuentes');
-  if (!container) return;
+  if (!container) {
+    console.warn('createComparativaFuentes: No se encontró #comparativa-fuentes');
+    return;
+  }
+  
+  // Eliminar elementos de carga
+  container.querySelectorAll('.loading').forEach(el => el.remove());
   
   // Normalizar fuentes para comparación
   const fuentesUnicas = new Set([...Object.keys(xiii.comoSeEnteraron || {}), ...Object.keys(xiv.fuentes || {})]);
@@ -3137,7 +3321,13 @@ function createComparativaFuentes(xiii, xiv) {
 // Función para crear el listado de asistentes
 function createAsistentesList() {
   const container = document.querySelector('#lista-asistentes');
-  if (!container) return;
+  if (!container) {
+    console.warn('createAsistentesList: No se encontró #lista-asistentes');
+    return;
+  }
+  
+  // Eliminar elementos de carga
+  container.querySelectorAll('.loading').forEach(el => el.remove());
   
   // Obtener lista de asistentes (con talleres) por email
   const asistentesConTalleres = asistenciaData.filter(row => {
@@ -3249,12 +3439,17 @@ function createAsistentesList() {
     const filtroDocentesExternos = document.getElementById('filtro-asistentes-docentes-externos')?.checked ?? true;
     const filtroNoDocentes = document.getElementById('filtro-asistentes-no-docentes')?.checked ?? true;
     const filtroInstitucion = document.getElementById('filtro-asistentes-institucion')?.value || '';
+    const busqueda = (document.getElementById('busqueda-asistentes')?.value || '').toLowerCase().trim();
     
     const filtrados = asistentes.filter(persona => {
       if (!filtroDocentesColegio && persona.tipoDocente === 'docentesColegio') return false;
       if (!filtroDocentesExternos && persona.tipoDocente === 'docentesExternos') return false;
       if (!filtroNoDocentes && persona.tipoDocente === 'noDocentes') return false;
       if (filtroInstitucion && persona.institucion !== filtroInstitucion) return false;
+      if (busqueda) {
+        const textoBusqueda = `${persona.nombre} ${persona.email} ${persona.institucion} ${persona.perfil}`.toLowerCase();
+        if (!textoBusqueda.includes(busqueda)) return false;
+      }
       return true;
     });
     
@@ -3373,12 +3568,19 @@ function createAsistentesList() {
   document.getElementById('filtro-asistentes-docentes-externos')?.addEventListener('change', renderizarLista);
   document.getElementById('filtro-asistentes-no-docentes')?.addEventListener('change', renderizarLista);
   document.getElementById('filtro-asistentes-institucion')?.addEventListener('change', renderizarLista);
+  document.getElementById('busqueda-asistentes')?.addEventListener('input', renderizarLista);
 }
 
 // Función para crear el listado de no asistentes
 function createNoAsistentesList() {
   const container = document.querySelector('#lista-no-asistentes');
-  if (!container) return;
+  if (!container) {
+    console.warn('createNoAsistentesList: No se encontró #lista-no-asistentes');
+    return;
+  }
+  
+  // Eliminar elementos de carga
+  container.querySelectorAll('.loading').forEach(el => el.remove());
   
   // Obtener lista de asistentes (con talleres) por email
   const asistentesConTalleres = asistenciaData.filter(row => {
@@ -3500,12 +3702,17 @@ function createNoAsistentesList() {
     const filtroDocentesExternos = document.getElementById('filtro-docentes-externos')?.checked ?? true;
     const filtroNoDocentes = document.getElementById('filtro-no-docentes')?.checked ?? true;
     const filtroInstitucion = document.getElementById('filtro-institucion')?.value || '';
+    const busqueda = (document.getElementById('busqueda-no-asistentes')?.value || '').toLowerCase().trim();
     
     const filtrados = noAsistentes.filter(persona => {
       if (!filtroDocentesColegio && persona.tipoDocente === 'docentesColegio') return false;
       if (!filtroDocentesExternos && persona.tipoDocente === 'docentesExternos') return false;
       if (!filtroNoDocentes && persona.tipoDocente === 'noDocentes') return false;
       if (filtroInstitucion && persona.institucion !== filtroInstitucion) return false;
+      if (busqueda) {
+        const textoBusqueda = `${persona.nombre} ${persona.email} ${persona.institucion} ${persona.perfil}`.toLowerCase();
+        if (!textoBusqueda.includes(busqueda)) return false;
+      }
       return true;
     });
     
@@ -3612,6 +3819,7 @@ function createNoAsistentesList() {
   document.getElementById('filtro-docentes-externos')?.addEventListener('change', renderizarLista);
   document.getElementById('filtro-no-docentes')?.addEventListener('change', renderizarLista);
   document.getElementById('filtro-institucion')?.addEventListener('change', renderizarLista);
+  document.getElementById('busqueda-no-asistentes')?.addEventListener('input', renderizarLista);
 }
 
 // Nueva función para gráfico de valoración de charla inspiracional mejorado
@@ -3677,6 +3885,8 @@ function createCharlaChart(valoraciones) {
   
   const wrapper = container.querySelector('.chart-wrapper');
   if (wrapper) {
+    // Eliminar elementos de carga
+    wrapper.querySelectorAll('.loading').forEach(el => el.remove());
     wrapper.innerHTML = wrapper.innerHTML + html;
     // Animar las barras
     setTimeout(() => {
@@ -3684,6 +3894,8 @@ function createCharlaChart(valoraciones) {
         bar.style.width = bar.getAttribute('data-width') + '%';
       });
     }, 100);
+  } else {
+    console.warn('createCharlaChart: No se encontró .chart-wrapper');
   }
 }
 
@@ -4561,8 +4773,27 @@ function mostrarAreasMejora(categorias, temas) {
   container.appendChild(areasDiv);
 }
 
-// Función para generar y descargar CSVs
+// Función para generar y descargar CSVs con feedback visual
 function generarCSV(tipo) {
+  // Encontrar el botón que activó la descarga
+  const button = document.querySelector(`button[onclick*="generarCSV('${tipo}')"]`) || 
+                 document.querySelector(`[data-file="${tipo}"] button`) ||
+                 document.querySelector(`[data-file="${tipo}"] .download-button`);
+  
+  let originalHTML = '';
+  let originalBg = '';
+  
+  // Agregar feedback visual inicial
+  if (button) {
+    originalHTML = button.innerHTML;
+    originalBg = button.style.background || '';
+    
+    button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generando...';
+    button.style.background = 'linear-gradient(135deg, #ffc107 0%, #ffb300 100%)';
+    button.style.cursor = 'wait';
+    button.disabled = true;
+  }
+  
   let csvContent = '';
   let filename = '';
   
@@ -4724,15 +4955,16 @@ function generarCSV(tipo) {
   document.body.removeChild(link);
   URL.revokeObjectURL(url);
   
-  // Efecto visual de confirmación
-  const button = document.querySelector(`[data-file="${tipo}"] .download-button`);
-  if (button) {
-    const originalText = button.innerHTML;
-    button.innerHTML = '<i class="fas fa-check" style="margin-right: 8px;"></i>¡Descargado!';
+  // Efecto visual de confirmación mejorado
+  if (button && originalHTML) {
+    button.innerHTML = '<i class="fas fa-check"></i> ¡Descargado!';
     button.style.background = 'linear-gradient(135deg, #28a745 0%, #20c997 100%)';
+    button.style.cursor = 'pointer';
+    
     setTimeout(() => {
-      button.innerHTML = originalText;
-      button.style.background = '';
+      button.innerHTML = originalHTML;
+      button.style.background = originalBg || '';
+      button.disabled = false;
     }, 2000);
   }
 }
@@ -4846,13 +5078,35 @@ function improveAccessibility() {
   });
 }
 
+// Función para manejar el botón de scroll to top
+function initScrollToTop() {
+  const scrollButton = document.getElementById('scrollToTop');
+  if (!scrollButton) return;
+  
+  // Mostrar/ocultar botón según scroll
+  window.addEventListener('scroll', () => {
+    if (window.pageYOffset > 300) {
+      scrollButton.classList.add('visible');
+    } else {
+      scrollButton.classList.remove('visible');
+    }
+  }, { passive: true });
+  
+  // Scroll suave al hacer clic
+  scrollButton.addEventListener('click', () => {
+    window.scrollTo({
+      top: 0,
+      behavior: 'smooth'
+    });
+  });
+}
+
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
   showSection('resumen');
   loadData();
   mejorarTarjetasDescarga();
   improveAccessibility();
-  
-  // No añadir indicador de carga global con animación
+  initScrollToTop();
 });
 

@@ -911,3 +911,154 @@ body.loading::before {
 html {
   scroll-behavior: smooth;
 }
+
+/* Botón de scroll to top */
+.scroll-to-top {
+  position: fixed;
+  bottom: 30px;
+  right: 30px;
+  width: 50px;
+  height: 50px;
+  background: var(--gradient);
+  color: white;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  box-shadow: 0 4px 16px rgba(128, 24, 54, 0.3);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  z-index: 1000;
+  opacity: 0;
+  transform: translateY(20px);
+}
+
+.scroll-to-top.visible {
+  display: flex;
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.scroll-to-top:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 6px 20px rgba(128, 24, 54, 0.4);
+  background: linear-gradient(135deg, #9a1f42 0%, #801836 100%);
+}
+
+.scroll-to-top:active {
+  transform: translateY(-2px);
+}
+
+.scroll-to-top:focus {
+  outline: 3px solid rgba(128, 24, 54, 0.3);
+  outline-offset: 2px;
+}
+
+/* Mejoras en transiciones de secciones */
+.section {
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity 0.4s ease-out, transform 0.4s ease-out;
+  pointer-events: none;
+}
+
+.section.active {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+/* Animación de entrada para métricas */
+@keyframes metricFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.metric-card {
+  animation: metricFadeIn 0.6s ease-out backwards;
+}
+
+.metric-card:nth-child(1) { animation-delay: 0.1s; }
+.metric-card:nth-child(2) { animation-delay: 0.2s; }
+.metric-card:nth-child(3) { animation-delay: 0.3s; }
+.metric-card:nth-child(4) { animation-delay: 0.4s; }
+.metric-card:nth-child(5) { animation-delay: 0.5s; }
+.metric-card:nth-child(6) { animation-delay: 0.6s; }
+
+/* Mejoras de accesibilidad - Focus states */
+.nav-button:focus-visible,
+button:focus-visible,
+.download-card button:focus-visible {
+  outline: 3px solid rgba(128, 24, 54, 0.5);
+  outline-offset: 3px;
+  border-radius: var(--border-radius);
+}
+
+/* Mejora en búsqueda/filtros */
+.search-box {
+  position: relative;
+  margin-bottom: var(--space-lg);
+}
+
+.search-box input {
+  width: 100%;
+  padding: var(--space-md) var(--space-md) var(--space-md) 45px;
+  border: 2px solid var(--color-border);
+  border-radius: var(--border-radius);
+  font-size: var(--font-size-base);
+  transition: var(--transition);
+  background: var(--bg);
+}
+
+.search-box input:focus {
+  outline: none;
+  border-color: var(--granate);
+  box-shadow: 0 0 0 3px rgba(128, 24, 54, 0.1);
+}
+
+.search-box i {
+  position: absolute;
+  left: var(--space-md);
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--gris);
+  pointer-events: none;
+}
+
+/* Mejoras responsive para móviles */
+@media (max-width: 768px) {
+  .scroll-to-top {
+    bottom: 20px;
+    right: 20px;
+    width: 45px;
+    height: 45px;
+    font-size: 18px;
+  }
+  
+  .nav-container {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+  }
+  
+  .nav-container::-webkit-scrollbar {
+    height: 6px;
+  }
+  
+  .nav-container::-webkit-scrollbar-track {
+    background: var(--suave);
+  }
+  
+  .nav-container::-webkit-scrollbar-thumb {
+    background: var(--granate);
+    border-radius: 3px;
+  }
+}

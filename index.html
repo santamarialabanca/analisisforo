@@ -283,8 +283,12 @@
             </div>
 
             <div class="chart-container">
-                <h3>Filtros</h3>
+                <h3>Filtros y Búsqueda</h3>
                 <div class="chart-wrapper" style="padding: 20px;">
+                    <div class="search-box" style="margin-bottom: 20px;">
+                        <i class="fas fa-search"></i>
+                        <input type="text" id="busqueda-asistentes" placeholder="Buscar por nombre, email o institución..." autocomplete="off">
+                    </div>
                     <div style="display: flex; gap: 16px; flex-wrap: wrap; align-items: center;">
                         <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
                             <input type="checkbox" id="filtro-asistentes-docentes-colegio" checked style="cursor: pointer;">
@@ -325,8 +329,12 @@
             </div>
 
             <div class="chart-container">
-                <h3>Filtros</h3>
+                <h3>Filtros y Búsqueda</h3>
                 <div class="chart-wrapper" style="padding: 20px;">
+                    <div class="search-box" style="margin-bottom: 20px;">
+                        <i class="fas fa-search"></i>
+                        <input type="text" id="busqueda-no-asistentes" placeholder="Buscar por nombre, email o institución..." autocomplete="off">
+                    </div>
                     <div style="display: flex; gap: 16px; flex-wrap: wrap; align-items: center;">
                         <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
                             <input type="checkbox" id="filtro-docentes-colegio" checked style="cursor: pointer;">
@@ -582,6 +590,11 @@
         <p><strong>Colaboración:</strong> Equipo organizador del XIV Foro de Innovación Educativa</p>
         <p><strong>Fecha:</strong> Noviembre de 2025</p>
     </footer>
+
+    <!-- Botón de scroll to top -->
+    <button id="scrollToTop" class="scroll-to-top" aria-label="Volver arriba" title="Volver arriba">
+        <i class="fas fa-arrow-up"></i>
+    </button>
 
     <script src="app.js"></script>
 </body>
