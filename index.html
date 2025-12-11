@@ -44,12 +44,12 @@
             <button class="nav-button" data-section="propuestas">
                 <i class="fas fa-lightbulb"></i> Propuestas
             </button>
-            <button class="nav-button" data-section="asistentes">
+            <!-- <button class="nav-button" data-section="asistentes">
                 <i class="fas fa-user-check"></i> Asistentes
             </button>
             <button class="nav-button" data-section="no-asistentes">
                 <i class="fas fa-user-times"></i> No Asistentes
-            </button>
+            </button> -->
             <button class="nav-button" data-section="balance">
                 <i class="fas fa-balance-scale"></i> Balance y Análisis
             </button>
@@ -71,17 +71,17 @@
             <div class="metrics-grid">
                 <div class="metric-card">
                     <i class="fas fa-user-check" style="font-size: 2rem; color: var(--granate); margin-bottom: 12px; display: block;"></i>
-                    <div class="metric-value">300</div>
+                    <div class="metric-value">262</div>
                     <div class="metric-label">Inscritos</div>
                 </div>
                 <div class="metric-card">
                     <i class="fas fa-user-friends" style="font-size: 2rem; color: var(--granate); margin-bottom: 12px; display: block;"></i>
-                    <div class="metric-value">237</div>
+                    <div class="metric-value">216</div>
                     <div class="metric-label">Asistentes</div>
                 </div>
                 <div class="metric-card">
                     <i class="fas fa-percentage" style="font-size: 2rem; color: var(--granate); margin-bottom: 12px; display: block;"></i>
-                    <div class="metric-value">79%</div>
+                    <div class="metric-value">82.4%</div>
                     <div class="metric-label">Tasa Asistencia</div>
                 </div>
                 <div class="metric-card">
@@ -103,7 +103,7 @@
 
 
             <!-- <div class="chart-container">
-                <h3>Comparación Acreditaciones vs Staff</h3>
+                <h3>Comparación Inscripciones vs Staff</h3>
                 <div class="chart-wrapper" style="min-height: 300px;">
                     <div class="loading">
                         <i class="fas fa-users" style="font-size: 2rem; color: #801836; margin-bottom: 12px; display: block; opacity: 0.5;"></i>
@@ -113,17 +113,7 @@
             </div> -->
             
             <div class="chart-container">
-                <h3>Net Promoter Score (NPS)</h3>
-                <div class="chart-wrapper" id="nps-chart" style="min-height: 300px;">
-                    <div class="loading">
-                        <i class="fas fa-chart-line" style="font-size: 2rem; color: #801836; margin-bottom: 12px; display: block; opacity: 0.5;"></i>
-                        <p>Cargando cálculo de NPS...</p>
-                    </div>
-                </div>
-            </div>
-
-            <div class="chart-container">
-                <h3>Comparación de Roles: Acreditados vs Asistentes</h3>
+                <h3>Comparación de Roles: Inscritos vs Asistentes</h3>
                 <div class="chart-wrapper" style="min-height: 300px;">
                     <div class="loading">
                         <i class="fas fa-chart-line" style="font-size: 2rem; color: #801836; margin-bottom: 12px; display: block; opacity: 0.5;"></i>
@@ -388,7 +378,7 @@
             <h2 class="section-title">Balance y Análisis de Datos</h2>
             
             <div class="description-box">
-                <p><strong>Comparativa interanual:</strong> Análisis comparativo entre el XIII Foro de Innovación Educativa (2024) y el XIV Foro de Innovación Educativa - HUMANIA (2025). Las gráficas muestran la evolución de las métricas clave, incluyendo asistencia, valoraciones, NPS, talleres, perfiles y fuentes de información. La <strong>tasa de respuesta</strong> se calcula siempre sobre los asistentes (no sobre acreditados) y respecto al volumen de valoraciones recibidas. Los indicadores de color (verde/rojo) muestran si hubo mejora o disminución respecto al año anterior.</p>
+                <p><strong>Comparativa interanual:</strong> Análisis comparativo entre el XIII Foro de Innovación Educativa (2024) y el XIV Foro de Innovación Educativa - HUMANIA (2025). Las gráficas muestran la evolución de las métricas clave, incluyendo asistencia, valoraciones, talleres, perfiles y fuentes de información. La <strong>tasa de respuesta</strong> se calcula siempre sobre los asistentes (no sobre inscritos) y respecto al volumen de valoraciones recibidas. Los indicadores de color (verde/rojo) muestran si hubo mejora o disminución respecto al año anterior.</p>
             </div>
 
             <div class="chart-container">
@@ -417,16 +407,6 @@
                     <div class="loading">
                         <i class="fas fa-star" style="font-size: 2rem; color: #801836; margin-bottom: 12px; display: block; opacity: 0.5;"></i>
                         <p>Cargando comparativa de valoraciones...</p>
-                    </div>
-                </div>
-            </div>
-
-            <div class="chart-container">
-                <h3>Comparativa de NPS</h3>
-                <div class="chart-wrapper" id="comparativa-nps" style="min-height: 300px;">
-                    <div class="loading">
-                        <i class="fas fa-chart-line" style="font-size: 2rem; color: #801836; margin-bottom: 12px; display: block; opacity: 0.5;"></i>
-                        <p>Cargando comparativa de NPS...</p>
                     </div>
                 </div>
             </div>
@@ -478,7 +458,7 @@
                         </div>
                         <div style="flex: 1;">
                             <h3 style="margin: 0 0 4px 0; color: #801836; font-size: 18px; font-weight: 700;">Resumen General</h3>
-                            <p style="margin: 0; color: #666; font-size: 13px; line-height: 1.4;">Resumen ejecutivo de acreditaciones, asistencia y valoración</p>
+                            <p style="margin: 0; color: #666; font-size: 13px; line-height: 1.4;">Resumen ejecutivo de inscripciones, asistencia y valoración</p>
                         </div>
                     </div>
                     <button class="download-button" onclick="generarCSV('resumen')" style="width: 100%;">
@@ -494,7 +474,7 @@
                         </div>
                         <div style="flex: 1;">
                             <h3 style="margin: 0 0 4px 0; color: #801836; font-size: 18px; font-weight: 700;">Comparación Roles</h3>
-                            <p style="margin: 0; color: #666; font-size: 13px; line-height: 1.4;">Comparación acreditados/asistentes por rol</p>
+                            <p style="margin: 0; color: #666; font-size: 13px; line-height: 1.4;">Comparación inscritos/asistentes por rol</p>
                         </div>
                     </div>
                     <button class="download-button" onclick="generarCSV('roles')" style="width: 100%;">

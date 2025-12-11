@@ -287,9 +287,9 @@ function animateValue(element, start, end, duration, suffix = '') {
 }
 
 function updateMetrics() {
-  const acreditados = acreditacionesData.length;
-  // Contar todos los asistentes (total de registros en asistenciaData)
-  const asistentes = asistenciaData.length; // 221 asistentes
+  // Datos reales 2025: 262 inscritos, 216 asistentes
+  const acreditados = 262; // Inscritos 2025
+  const asistentes = 216; // Asistentes 2025
   const tasaAsistencia = acreditados > 0 ? ((asistentes / acreditados) * 100) : 0;
   const valoraciones = respuestasData.length;
   const tasaRespuesta = asistentes > 0 ? ((valoraciones / asistentes) * 100) : 0;
@@ -2728,19 +2728,31 @@ function createNPSChart() {
 const datosForoXIII = {
   año: 2024,
   nombre: 'XIII Foro de Innovación Educativa',
-  acreditados: 280, // Ajustar según datos reales
-  asistentes: 220, // Ajustar según datos reales
-  tasaAsistencia: 78.6, // Calculado
+  acreditados: 294, // Inscritos 2024
+  asistentes: 250, // Asistentes 2024
+  tasaAsistencia: 85.0, // Calculado: (250/294)*100
   valoraciones: 75, // Ajustar según datos reales
   tasaRespuesta: 26.8, // Calculado
   valoracionMedia: 4.3, // Ajustar según datos reales
   nps: 45, // Ajustar según datos reales
   talleres1730: 10, // Número de talleres
   talleres1830: 10, // Número de talleres
+  // Desglose de inscritos 2024
+  inscritos: {
+    docentesCSMB: 160,
+    familias: 44,
+    otros: 90
+  },
+  // Desglose de asistentes 2024
+  asistentesDesglose: {
+    docentesCSMB: 151,
+    familias: 25,
+    externos: 74
+  },
   perfiles: {
-    'Docente': 65,
-    'Familia': 25,
-    'Otros profesionales de la educación': 10
+    'Docente': 151, // Docentes CSMB de asistentes 2024
+    'Familia': 25, // Familias de asistentes 2024
+    'Otros profesionales de la educación': 74 // Externos de asistentes 2024
   },
   comoSeEnteraron: {
     'Invitación directa vía email': 40,
@@ -2758,11 +2770,19 @@ let talleres1830Asistentes = {};
 // Función para crear la comparativa entre Foro XIII y XIV
 function createComparativaForos() {
   // Calcular datos del Foro XIV
+  // Datos reales 2025: 262 inscritos, 216 asistentes
   const datosForoXIV = {
     año: 2025,
     nombre: 'XIV Foro de Innovación Educativa - HUMANIA',
-    acreditados: acreditacionesData.length,
-    asistentes: asistenciaData.length, // Total de asistentes (221)
+    acreditados: 262, // Inscritos 2025
+    asistentes: 216, // Asistentes 2025
+    // Desglose de inscritos 2025
+    inscritos: {
+      docentesCSMB: 175,
+      familias: 48,
+      otros: 40
+    },
+    // Nota: No se valora el número concreto de asistentes por categoría en 2025
     valoraciones: respuestasData.length,
     tasaRespuesta: 0,
     valoracionMedia: 0,
