@@ -336,9 +336,9 @@ function updateMetrics() {
   if (descripcion) {
     descripcion.innerHTML = `
       <strong>Resumen del XIV Foro de Innovación Educativa - HUMANIA:</strong><br>
-      • <strong>${acreditados} acreditaciones</strong> (personas invitadas)<br>
+      • <strong>${acreditados} inscritos</strong> (personas que se inscribieron)<br>
       • <strong>${asistentes} asistentes</strong> - ${tasaAsistencia.toFixed(1)}% de tasa de asistencia<br>
-      • <strong>${valoraciones} valoraciones</strong> recibidas - ${tasaRespuesta.toFixed(1)}% de tasa de respuesta<br>
+      • <strong>${valoraciones} valoraciones</strong> recibidas - ${tasaRespuesta.toFixed(1)}% de tasa de respuesta (calculada sobre asistentes)<br>
       • <strong>Valoración media: ${valoracionMedia.toFixed(2)}/5</strong> ${valoracionMedia >= 4 ? '⭐ Excelente' : valoracionMedia >= 3.5 ? '👍 Buena' : '📊 Aceptable'}
     `;
   }
@@ -507,12 +507,12 @@ function createRoleChart(rolesAcreditados, rolesAsistentes) {
               Distribución por Rol
             </h4>
             <p style="font-size: 13px; color: #666; margin: 0; line-height: 1.5;">
-              Comparación entre personas <strong>acreditadas</strong> (invitadas) y <strong>asistentes</strong> por tipo de rol.
+              Comparación entre personas <strong>inscritas</strong> y <strong>asistentes</strong> por tipo de rol.
             </p>
           </div>
           <div style="display: flex; gap: 16px; flex-wrap: wrap;">
             <div style="text-align: center; padding: 12px 16px; background: rgba(128, 24, 54, 0.05); border-radius: 8px; border: 1px solid rgba(128, 24, 54, 0.1);">
-              <div style="font-size: 11px; color: #666; margin-bottom: 4px;">Total Acreditados</div>
+              <div style="font-size: 11px; color: #666; margin-bottom: 4px;">Total Inscritos</div>
               <div style="font-size: 24px; font-weight: 700; color: #801836;">${totalAcreditados}</div>
             </div>
             <div style="text-align: center; padding: 12px 16px; background: rgba(40, 167, 69, 0.05); border-radius: 8px; border: 1px solid rgba(40, 167, 69, 0.1);">
@@ -927,15 +927,15 @@ function createAcreditacionesStaffChart() {
           <div>
             <h4 style="color: #801836; font-size: 18px; font-weight: 700; margin: 0 0 8px 0; display: flex; align-items: center; gap: 8px;">
               <i class="fas fa-users" style="font-size: 18px;"></i>
-              Comparación Acreditaciones vs Staff
+              Comparación Inscripciones vs Staff
             </h4>
             <p style="font-size: 13px; color: #666; margin: 0; line-height: 1.5;">
-              Análisis comparativo entre <strong>acreditaciones</strong> (personas invitadas) y <strong>asistentes reales</strong> (que participaron en talleres), diferenciando entre <strong>staff del colegio</strong> (docentes @p.csmb) y <strong>asistentes externos</strong>.
+              Análisis comparativo entre <strong>inscripciones</strong> y <strong>asistentes reales</strong> (que participaron en talleres), diferenciando entre <strong>staff del colegio</strong> (docentes @p.csmb) y <strong>asistentes externos</strong>.
             </p>
           </div>
           <div style="display: flex; gap: 12px; flex-wrap: wrap;">
             <div style="text-align: center; padding: 12px 16px; background: rgba(128, 24, 54, 0.05); border-radius: 8px; border: 1px solid rgba(128, 24, 54, 0.1);">
-              <div style="font-size: 11px; color: #666; margin-bottom: 4px;">Total Acreditados</div>
+              <div style="font-size: 11px; color: #666; margin-bottom: 4px;">Total Inscritos</div>
               <div style="font-size: 24px; font-weight: 700; color: #801836;">${totalAcreditados}</div>
             </div>
             <div style="text-align: center; padding: 12px 16px; background: rgba(40, 167, 69, 0.05); border-radius: 8px; border: 1px solid rgba(40, 167, 69, 0.1);">
@@ -1018,7 +1018,7 @@ function createAcreditacionesStaffChart() {
       
       <div style="padding: 16px; background: linear-gradient(135deg, rgba(128, 24, 54, 0.05) 0%, rgba(128, 24, 54, 0.02) 100%); border-radius: 12px; border-left: 4px solid #801836; margin-top: 24px;">
         <div style="font-size: 13px; color: #666; line-height: 1.6;">
-          <strong style="color: #801836;">Resumen:</strong> De los <strong>${totalAcreditados} acreditados</strong>, 
+          <strong style="color: #801836;">Resumen:</strong> De los <strong>${totalAcreditados} inscritos</strong>, 
           <strong>${acreditadosStaff} son staff del colegio</strong> (${((acreditadosStaff / totalAcreditados) * 100).toFixed(1)}%) y 
           <strong>${acreditadosNoStaff} son asistentes externos</strong> (${((acreditadosNoStaff / totalAcreditados) * 100).toFixed(1)}%). 
           La tasa de asistencia general es del <strong>${tasaAsistenciaGeneral}%</strong>, con 
@@ -2730,9 +2730,9 @@ const datosForoXIII = {
   nombre: 'XIII Foro de Innovación Educativa',
   acreditados: 294, // Inscritos 2024
   asistentes: 250, // Asistentes 2024
-  tasaAsistencia: 85.0, // Calculado: (250/294)*100
-  valoraciones: 75, // Ajustar según datos reales
-  tasaRespuesta: 26.8, // Calculado
+  tasaAsistencia: 85.0, // Calculado: (250/294)*100 = 85.03%
+  valoraciones: 75, // Valoraciones recibidas 2024
+  tasaRespuesta: 30.0, // Calculado: (75/250)*100 = 30.0%
   valoracionMedia: 4.3, // Ajustar según datos reales
   nps: 45, // Ajustar según datos reales
   talleres1730: 10, // Número de talleres
@@ -2909,7 +2909,7 @@ function createComparativaGeneral(xiii, xiv) {
   container.querySelectorAll('.loading').forEach(el => el.remove());
   
   const metricas = [
-    { label: 'Acreditados', xiii: xiii.acreditados, xiv: xiv.acreditados, icon: 'fa-user-check', color: '#801836' },
+    { label: 'Inscritos', xiii: xiii.acreditados, xiv: xiv.acreditados, icon: 'fa-user-check', color: '#801836' },
     { label: 'Asistentes', xiii: xiii.asistentes, xiv: xiv.asistentes, icon: 'fa-user-friends', color: '#9a1f42' },
     { label: 'Tasa Asistencia', xiii: xiii.tasaAsistencia, xiv: parseFloat(xiv.tasaAsistencia), icon: 'fa-percentage', color: '#b4284e', suffix: '%' },
     { label: 'Valoraciones', xiii: xiii.valoraciones, xiv: xiv.valoraciones, icon: 'fa-clipboard-check', color: '#ce315a' },
