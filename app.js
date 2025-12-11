@@ -491,9 +491,9 @@ function createRoleChart(rolesAcreditados, rolesAsistentes) {
   
   const roles = [...new Set([...Object.keys(rolesAcreditados), ...Object.keys(rolesAsistentes)])];
   
-  // Calcular totales para contexto
-  const totalAcreditados = Object.values(rolesAcreditados).reduce((sum, val) => sum + val, 0);
-  const totalAsistentes = Object.values(rolesAsistentes).reduce((sum, val) => sum + val, 0);
+  // Usar valores reales: 262 inscritos, 216 asistentes (2025)
+  const totalAcreditados = 262; // Total real de inscritos 2025
+  const totalAsistentes = 216; // Total real de asistentes 2025
   const tasaAsistenciaGeneral = totalAcreditados > 0 ? ((totalAsistentes / totalAcreditados) * 100).toFixed(1) : 0;
   
   // Crear gráfico combinado con barras y comparación visual mejorado
@@ -562,13 +562,13 @@ function createRoleChart(rolesAcreditados, rolesAsistentes) {
                 ${diferencia > 0 ? `<span style="color: #999; font-size: 11px;"> (${diferencia} no asistieron)</span>` : ''}
               </div>
               <div style="font-size: 11px; color: #999; font-style: italic;">
-                ${acreditados} acreditados → ${asistentes} asistentes
+                ${acreditados} inscritos → ${asistentes} asistentes
               </div>
             </div>
           </div>
           <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
             <div style="text-align: center; padding: 10px 14px; background: linear-gradient(135deg, rgba(128, 24, 54, 0.1) 0%, rgba(128, 24, 54, 0.05) 100%); border-radius: 8px; border: 1px solid rgba(128, 24, 54, 0.2); min-width: 90px;">
-              <div style="font-size: 10px; color: #666; margin-bottom: 4px; font-weight: 600;">Acreditados</div>
+              <div style="font-size: 10px; color: #666; margin-bottom: 4px; font-weight: 600;">Inscritos</div>
               <strong style="color: #801836; font-size: 22px; font-weight: 700;">${acreditados}</strong>
               <div style="font-size: 10px; color: #999; margin-top: 2px;">${totalAcreditados > 0 ? ((acreditados / totalAcreditados) * 100).toFixed(1) : 0}% del total</div>
             </div>
@@ -583,7 +583,7 @@ function createRoleChart(rolesAcreditados, rolesAsistentes) {
           <div>
             <div style="font-size: 12px; color: #666; margin-bottom: 6px; display: flex; align-items: center; gap: 6px;">
               <i class="fas fa-user-check" style="color: #801836; font-size: 12px;"></i>
-              Acreditados (relativo)
+              Inscritos (relativo)
             </div>
             <div style="position: relative; height: 28px; background: rgba(128, 24, 54, 0.1); border-radius: 6px; overflow: hidden; box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);">
               <div style="position: absolute; left: 0; top: 0; height: 100%; width: 0%; background: linear-gradient(135deg, #801836 0%, #6a1430 100%); border-radius: 6px; transition: width 0.8s ease ${index * 0.1}s; display: flex; align-items: center; justify-content: flex-end; padding-right: 8px;">
