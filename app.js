@@ -2894,7 +2894,7 @@ function createComparativaForos() {
   createComparativaNPS(datosForoXIII, datosForoXIV);
   createComparativaTalleres(datosForoXIII, datosForoXIV);
   createComparativaPerfiles(datosForoXIII, datosForoXIV);
-  createComparativaFuentes(datosForoXIII, datosForoXIV);
+  // createComparativaFuentes(datosForoXIII, datosForoXIV);
 }
 
 // Función para crear la comparativa general
