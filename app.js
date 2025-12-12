@@ -1070,29 +1070,12 @@ function createResumenTalleres(talleres1730, talleres1830) {
           <div style="font-size: 12px; color: #999; margin-top: 8px;">${numTalleres1730} (17:30) + ${numTalleres1830} (18:30)</div>
         </div>
         
-        <div style="background: linear-gradient(135deg, rgba(40, 167, 69, 0.1) 0%, rgba(40, 167, 69, 0.05) 100%); padding: 20px; border-radius: 12px; border-left: 4px solid #28a745; text-align: center; transition: all 0.3s;" onmouseover="this.style.transform='translateY(-3px)'; this.style.boxShadow='0 4px 12px rgba(40, 167, 69, 0.15)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none'">
-          <i class="fas fa-users" style="font-size: 2rem; color: #28a745; margin-bottom: 12px; display: block;"></i>
-          <div style="font-size: 32px; font-weight: 700; color: #28a745; margin-bottom: 4px;">${totalAsistentes}</div>
-          <div style="font-size: 14px; color: #666;">Total Asistencias</div>
-          <div style="font-size: 12px; color: #999; margin-top: 8px;">${total1730} (17:30) + ${total1830} (18:30)</div>
-        </div>
-        
         <div style="background: linear-gradient(135deg, rgba(255, 193, 7, 0.1) 0%, rgba(255, 193, 7, 0.05) 100%); padding: 20px; border-radius: 12px; border-left: 4px solid #ffc107; text-align: center; transition: all 0.3s;" onmouseover="this.style.transform='translateY(-3px)'; this.style.boxShadow='0 4px 12px rgba(255, 193, 7, 0.15)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none'">
           <i class="fas fa-chart-line" style="font-size: 2rem; color: #ffc107; margin-bottom: 12px; display: block;"></i>
           <div style="font-size: 32px; font-weight: 700; color: #ffc107; margin-bottom: 4px;">${promedioPorTaller}</div>
-          <div style="font-size: 14px; color: #666;">Promedio por Taller</div>
+          <div style="font-size: 14px; color: #666;">Promedio Asistentes por Taller</div>
           <div style="font-size: 12px; color: #999; margin-top: 8px;">Asistentes promedio</div>
         </div>
-        
-        ${tallerMasPopular ? `
-        <div style="background: linear-gradient(135deg, rgba(128, 24, 54, 0.1) 0%, rgba(128, 24, 54, 0.05) 100%); padding: 20px; border-radius: 12px; border-left: 4px solid #801836; transition: all 0.3s;" onmouseover="this.style.transform='translateY(-3px)'; this.style.boxShadow='0 4px 12px rgba(128, 24, 54, 0.15)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none'">
-          <i class="fas fa-trophy" style="font-size: 2rem; color: #ffd700; margin-bottom: 12px; display: block; text-align: center;"></i>
-          <div style="font-size: 18px; font-weight: 700; color: #801836; margin-bottom: 8px; text-align: center;">Taller Más Popular</div>
-          <div style="font-size: 13px; color: #666; margin-bottom: 8px; text-align: center; line-height: 1.4;">${tallerMasPopular[0].substring(0, 50)}${tallerMasPopular[0].length > 50 ? '...' : ''}</div>
-          <div style="font-size: 24px; font-weight: 700; color: #801836; text-align: center;">${tallerMasPopular[1]}</div>
-          <div style="font-size: 12px; color: #999; text-align: center; margin-top: 4px;">asistentes</div>
-        </div>
-        ` : ''}
       </div>
     </div>
   `;
