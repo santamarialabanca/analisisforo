@@ -1194,21 +1194,6 @@ function createResumenValoracion(ratings, valoracionCharla) {
     <div style="margin-top: 20px; padding: 28px; background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(247, 245, 246, 0.95) 100%); border-radius: 16px; border: 1px solid rgba(128, 24, 54, 0.12); box-shadow: 0 4px 16px rgba(128, 24, 54, 0.08);">
       <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px;">
         <div style="background: linear-gradient(135deg, rgba(128, 24, 54, 0.1) 0%, rgba(128, 24, 54, 0.05) 100%); padding: 24px; border-radius: 12px; border-left: 4px solid #801836; text-align: center; transition: all 0.3s;" onmouseover="this.style.transform='translateY(-3px)'; this.style.boxShadow='0 4px 12px rgba(128, 24, 54, 0.15)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none'">
-          <i class="fas fa-star" style="font-size: 2.5rem; color: #ffd700; margin-bottom: 12px; display: block;"></i>
-          <div style="font-size: 36px; font-weight: 700; color: #801836; margin-bottom: 8px;">${promedioForo}</div>
-          <div style="font-size: 14px; color: #666; margin-bottom: 12px;">Valoración Media del Foro</div>
-          <div style="display: flex; justify-content: center; gap: 4px; margin-bottom: 12px;">
-            ${'<i class="fas fa-star" style="color: #ffd700; font-size: 18px;"></i>'.repeat(Math.round(parseFloat(promedioForo)))}
-            ${'<i class="far fa-star" style="color: #ddd; font-size: 18px;"></i>'.repeat(5 - Math.round(parseFloat(promedioForo)))}
-          </div>
-          <div style="font-size: 12px; color: #999; margin-bottom: 8px;">${totalRatings} valoraciones</div>
-          <div style="padding-top: 12px; border-top: 1px solid rgba(128, 24, 54, 0.1); margin-top: 12px;">
-            <div style="font-size: 24px; font-weight: 700; color: #28a745; margin-bottom: 4px;">${porcentajeSatisfaccionForo}%</div>
-            <div style="font-size: 12px; color: #666;">Satisfacción (4-5 estrellas)</div>
-          </div>
-        </div>
-        
-        <div style="background: linear-gradient(135deg, rgba(128, 24, 54, 0.1) 0%, rgba(128, 24, 54, 0.05) 100%); padding: 24px; border-radius: 12px; border-left: 4px solid #801836; text-align: center; transition: all 0.3s;" onmouseover="this.style.transform='translateY(-3px)'; this.style.boxShadow='0 4px 12px rgba(128, 24, 54, 0.15)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none'">
           <i class="fas fa-microphone-alt" style="font-size: 2.5rem; color: #801836; margin-bottom: 12px; display: block;"></i>
           <div style="font-size: 36px; font-weight: 700; color: #801836; margin-bottom: 8px;">${promedioCharla}</div>
           <div style="font-size: 14px; color: #666; margin-bottom: 12px;">Valoración Charla Inspiracional</div>
@@ -1219,6 +1204,21 @@ function createResumenValoracion(ratings, valoracionCharla) {
           <div style="font-size: 12px; color: #999; margin-bottom: 8px;">${totalCharla} valoraciones</div>
           <div style="padding-top: 12px; border-top: 1px solid rgba(128, 24, 54, 0.1); margin-top: 12px;">
             <div style="font-size: 24px; font-weight: 700; color: #28a745; margin-bottom: 4px;">${porcentajeSatisfaccionCharla}%</div>
+            <div style="font-size: 12px; color: #666;">Satisfacción (4-5 estrellas)</div>
+          </div>
+        </div>
+        
+        <div style="background: linear-gradient(135deg, rgba(128, 24, 54, 0.1) 0%, rgba(128, 24, 54, 0.05) 100%); padding: 24px; border-radius: 12px; border-left: 4px solid #801836; text-align: center; transition: all 0.3s;" onmouseover="this.style.transform='translateY(-3px)'; this.style.boxShadow='0 4px 12px rgba(128, 24, 54, 0.15)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none'">
+          <i class="fas fa-star" style="font-size: 2.5rem; color: #ffd700; margin-bottom: 12px; display: block;"></i>
+          <div style="font-size: 36px; font-weight: 700; color: #801836; margin-bottom: 8px;">${promedioForo}</div>
+          <div style="font-size: 14px; color: #666; margin-bottom: 12px;">Valoración Media del Foro</div>
+          <div style="display: flex; justify-content: center; gap: 4px; margin-bottom: 12px;">
+            ${'<i class="fas fa-star" style="color: #ffd700; font-size: 18px;"></i>'.repeat(Math.round(parseFloat(promedioForo)))}
+            ${'<i class="far fa-star" style="color: #ddd; font-size: 18px;"></i>'.repeat(5 - Math.round(parseFloat(promedioForo)))}
+          </div>
+          <div style="font-size: 12px; color: #999; margin-bottom: 8px;">${totalRatings} valoraciones</div>
+          <div style="padding-top: 12px; border-top: 1px solid rgba(128, 24, 54, 0.1); margin-top: 12px;">
+            <div style="font-size: 24px; font-weight: 700; color: #28a745; margin-bottom: 4px;">${porcentajeSatisfaccionForo}%</div>
             <div style="font-size: 12px; color: #666;">Satisfacción (4-5 estrellas)</div>
           </div>
         </div>
@@ -1264,7 +1264,7 @@ function createRatingChart(ratings) {
           <div>
             <h4 style="color: #801836; font-size: 18px; font-weight: 700; margin: 0 0 8px 0; display: flex; align-items: center; gap: 8px;">
               <i class="fas fa-star" style="font-size: 18px;"></i>
-              Distribución de Valoraciones
+              Distribución de Valoraciones del Foro
             </h4>
             <p style="font-size: 13px; color: #666; margin: 0; line-height: 1.5;">
               Distribución de las valoraciones recibidas sobre el Foro de Innovación Educativa (escala 1-5 estrellas).
@@ -3934,23 +3934,42 @@ function createCharlaChart(valoraciones) {
   const maxCount = Math.max(...Object.values(valoraciones), 1);
   const colors = ['#801836', '#9a1f42', '#b4284e', '#ce315a', '#e83966'];
   
+  // Calcular % de satisfacción (4 y 5 estrellas)
+  const satisfechos = Object.entries(valoraciones)
+    .filter(([v]) => parseFloat(v) >= 4)
+    .reduce((sum, [_, c]) => sum + c, 0);
+  const porcentajeSatisfaccion = total > 0 ? ((satisfechos / total) * 100).toFixed(1) : 0;
+  
   if (sorted.length === 0) return;
   
   let html = `
     <div style="margin-top: 30px; padding-top: 30px; border-top: 2px solid rgba(128, 24, 54, 0.1);">
-      <h4 style="color: #801836; font-size: 18px; font-weight: 700; margin-bottom: 20px; display: flex; align-items: center; gap: 8px;">
-        <i class="fas fa-microphone-alt" style="font-size: 18px;"></i>
-        Valoración de la Charla Inspiracional
-      </h4>
-      <div style="background: linear-gradient(135deg, #801836 0%, #6a1430 100%); color: white; padding: 24px; border-radius: 12px; margin-bottom: 24px; text-align: center; box-shadow: 0 4px 16px rgba(128, 24, 54, 0.3);">
-        <div style="display: flex; align-items: center; justify-content: center; gap: 12px; margin-bottom: 8px;">
-          <div style="font-size: 48px; font-weight: 900; line-height: 1;">${promedio}</div>
-          <div style="display: flex; flex-direction: column; align-items: flex-start; gap: 4px;">
-            ${'<i class="fas fa-star" style="color: #ffd700; font-size: 20px; text-shadow: 0 1px 2px rgba(0,0,0,0.2);"></i>'.repeat(Math.round(parseFloat(promedio)))}
-            ${'<i class="far fa-star" style="color: rgba(255,255,255,0.5); font-size: 20px;"></i>'.repeat(5 - Math.round(parseFloat(promedio)))}
+      <div style="margin-bottom: 24px; padding-bottom: 20px; border-bottom: 2px solid rgba(128, 24, 54, 0.1);">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
+          <div>
+            <h4 style="color: #801836; font-size: 18px; font-weight: 700; margin: 0 0 8px 0; display: flex; align-items: center; gap: 8px;">
+              <i class="fas fa-microphone-alt" style="font-size: 18px;"></i>
+              Valoración de la Charla Inspiracional
+            </h4>
+            <p style="font-size: 13px; color: #666; margin: 0; line-height: 1.5;">
+              Distribución de las valoraciones recibidas sobre la Charla Inspiracional (escala 1-5 estrellas).
+            </p>
+          </div>
+          <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+            <div style="text-align: center; padding: 10px 14px; background: rgba(128, 24, 54, 0.05); border-radius: 8px; border: 1px solid rgba(128, 24, 54, 0.1);">
+              <div style="font-size: 10px; color: #666; margin-bottom: 4px;">Promedio</div>
+              <div style="font-size: 20px; font-weight: 700; color: #801836;">${promedio}</div>
+            </div>
+            <div style="text-align: center; padding: 10px 14px; background: rgba(40, 167, 69, 0.05); border-radius: 8px; border: 1px solid rgba(40, 167, 69, 0.1);">
+              <div style="font-size: 10px; color: #666; margin-bottom: 4px;">Satisfacción</div>
+              <div style="font-size: 20px; font-weight: 700; color: #28a745;">${porcentajeSatisfaccion}%</div>
+            </div>
+            <div style="text-align: center; padding: 10px 14px; background: rgba(128, 24, 54, 0.05); border-radius: 8px; border: 1px solid rgba(128, 24, 54, 0.1);">
+              <div style="font-size: 10px; color: #666; margin-bottom: 4px;">Total</div>
+              <div style="font-size: 20px; font-weight: 700; color: #801836;">${total}</div>
+            </div>
           </div>
         </div>
-        <div style="font-size: 14px; opacity: 0.95;">Valoración media (${total} ${total === 1 ? 'respuesta' : 'respuestas'})</div>
       </div>
       <div style="display: grid; gap: 14px;">
   `;
