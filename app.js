@@ -409,6 +409,30 @@ function updateCharts() {
     }
   });
   
+  // Primero, buscar el nombre del taller 10 en los datos originales para mantener consistencia
+  let nombreTaller10 = null;
+  for (const row of asistenciaData) {
+    const taller1830 = row['18:30']?.trim();
+    if (taller1830 && taller1830 !== 'Segunda sesión' && taller1830.match(/^10\./)) {
+      nombreTaller10 = extractTallerName(taller1830);
+      break;
+    }
+  }
+  // Si no se encuentra, buscar en acreditaciones
+  if (!nombreTaller10) {
+    for (const row of acreditacionesData) {
+      const taller1830 = row['18:30']?.trim();
+      if (taller1830 && taller1830 !== 'Segunda sesión' && taller1830.match(/^10\./)) {
+        nombreTaller10 = extractTallerName(taller1830);
+        break;
+      }
+    }
+  }
+  // Si aún no se encuentra, usar un nombre genérico
+  if (!nombreTaller10) {
+    nombreTaller10 = '10. Taller 10';
+  }
+  
   // Count from asistencia
   asistenciaData.forEach(row => {
     const taller1730 = row['17:30']?.trim();
@@ -420,8 +444,15 @@ function updateCharts() {
     }
     
     if (taller1830 && taller1830 !== 'Segunda sesión' && taller1830 !== '') {
-      const nombreTaller = extractTallerName(taller1830);
-      talleres1830Asistentes[nombreTaller] = (talleres1830Asistentes[nombreTaller] || 0) + 1;
+      // Detectar si es el taller 17 y moverlo al taller 10
+      const match17 = taller1830.match(/^17\./);
+      if (match17) {
+        // Mover la persona al taller 10
+        talleres1830Asistentes[nombreTaller10] = (talleres1830Asistentes[nombreTaller10] || 0) + 1;
+      } else {
+        const nombreTaller = extractTallerName(taller1830);
+        talleres1830Asistentes[nombreTaller] = (talleres1830Asistentes[nombreTaller] || 0) + 1;
+      }
     }
   });
   
@@ -727,7 +758,7 @@ function createWorkshopCharts(talleres1730, talleres1830) {
   }
   
   // Función auxiliar para crear gráfico de barras horizontal
-  function createBarChart(sortedData, maxCount) {
+  function createBarChart(sortedData, maxCount, is1830 = false) {
     if (sortedData.length === 0) {
       return `<div style="text-align: center; padding: 40px; background: rgba(247, 245, 246, 0.5); border-radius: 12px; border: 2px dashed rgba(128, 24, 54, 0.2);">
         <i class="fas fa-info-circle" style="font-size: 2rem; color: #801836; margin-bottom: 12px; display: block;"></i>
@@ -743,8 +774,10 @@ function createWorkshopCharts(talleres1730, talleres1830) {
       'linear-gradient(135deg, #e83966 0%, #ce315a 100%)'
     ];
     
-    const totalAsistentes = sortedData.reduce((sum, [_, count]) => sum + count, 0);
-  const promedioAsistentes = sortedData.length > 0 ? (totalAsistentes / sortedData.length).toFixed(1) : 0;
+    // Excluir el taller 17 anulado del cálculo del total y promedio
+    const datosActivos = sortedData.filter(([taller, count]) => !(is1830 && taller.startsWith('17.') && count === 0));
+    const totalAsistentes = datosActivos.reduce((sum, [_, count]) => sum + count, 0);
+    const promedioAsistentes = datosActivos.length > 0 ? (totalAsistentes / datosActivos.length).toFixed(1) : 0;
   
   let html = `
     <div style="margin-bottom: 20px; padding: 16px; background: linear-gradient(135deg, rgba(128, 24, 54, 0.05) 0%, rgba(128, 24, 54, 0.02) 100%); border-radius: 12px; border-left: 4px solid #801836;">
@@ -761,7 +794,7 @@ function createWorkshopCharts(talleres1730, talleres1830) {
         <div style="display: flex; gap: 12px; flex-wrap: wrap;">
           <div style="text-align: center; padding: 8px 12px; background: rgba(128, 24, 54, 0.1); border-radius: 8px;">
             <div style="font-size: 10px; color: #666; margin-bottom: 2px;">Total Talleres</div>
-            <div style="font-size: 18px; font-weight: 700; color: #801836;">${sortedData.length}</div>
+            <div style="font-size: 18px; font-weight: 700; color: #801836;">${datosActivos.length}</div>
           </div>
           <div style="text-align: center; padding: 8px 12px; background: rgba(40, 167, 69, 0.1); border-radius: 8px;">
             <div style="font-size: 10px; color: #666; margin-bottom: 2px;">Total Asistencias</div>
@@ -774,42 +807,48 @@ function createWorkshopCharts(talleres1730, talleres1830) {
   `;
   
     sortedData.forEach(([taller, count], index) => {
-      const porcentaje = maxCount > 0 ? (count / maxCount) * 100 : 0;
-      const porcentajeDelTotal = totalAsistentes > 0 ? ((count / totalAsistentes) * 100).toFixed(1) : 0;
+      // Detectar si es el taller 17 de la sesión 18:30 y está anulado
+      const esTaller17Anulado = is1830 && taller.startsWith('17.') && count === 0;
+      const porcentaje = maxCount > 0 && !esTaller17Anulado ? (count / maxCount) * 100 : 0;
+      const porcentajeDelTotal = totalAsistentes > 0 && !esTaller17Anulado ? ((count / totalAsistentes) * 100).toFixed(1) : 0;
       const color = colors[index % colors.length];
       const tallerEscapado = taller.replace(/</g, '&lt;').replace(/>/g, '&gt;');
       
-      // Indicador de popularidad
-      const esPopular = count >= promedioAsistentes;
+      // Indicador de popularidad (no aplica si está anulado)
+      const esPopular = !esTaller17Anulado && count >= promedioAsistentes;
       const popularidadIcon = esPopular ? 'fa-fire' : 'fa-chart-line';
       const popularidadColor = esPopular ? '#ff6b35' : '#801836';
       
       html += `
-        <div style="background: linear-gradient(135deg, rgba(255, 255, 255, 0.9) 0%, rgba(247, 245, 246, 0.9) 100%); backdrop-filter: blur(10px); border: 1px solid rgba(128, 24, 54, 0.1); padding: 20px; border-radius: 12px; transition: all 0.3s; border-left: 4px solid #801836; box-shadow: 0 2px 8px rgba(128, 24, 54, 0.05);" onmouseover="this.style.transform='translateX(4px)'; this.style.boxShadow='0 4px 12px rgba(128, 24, 54, 0.15)'" onmouseout="this.style.transform='translateX(0)'; this.style.boxShadow='0 2px 8px rgba(128, 24, 54, 0.05)'">
+        <div style="background: linear-gradient(135deg, rgba(255, 255, 255, 0.9) 0%, rgba(247, 245, 246, 0.9) 100%); backdrop-filter: blur(10px); border: 1px solid rgba(128, 24, 54, 0.1); padding: 20px; border-radius: 12px; transition: all 0.3s; border-left: 4px solid ${esTaller17Anulado ? '#999' : '#801836'}; box-shadow: 0 2px 8px rgba(128, 24, 54, 0.05); opacity: ${esTaller17Anulado ? '0.6' : '1'};" onmouseover="this.style.transform='translateX(4px)'; this.style.boxShadow='0 4px 12px rgba(128, 24, 54, 0.15)'" onmouseout="this.style.transform='translateX(0)'; this.style.boxShadow='0 2px 8px rgba(128, 24, 54, 0.05)'">
           <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 12px; flex-wrap: wrap;">
             <div style="flex: 1; min-width: 250px;">
               <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
-                <div style="font-size: 14px; font-weight: 600; color: #1a1a1a; line-height: 1.3; word-wrap: break-word;">${tallerEscapado}</div>
+                <div style="font-size: 14px; font-weight: 600; color: ${esTaller17Anulado ? '#999' : '#1a1a1a'}; line-height: 1.3; word-wrap: break-word;">${tallerEscapado}${esTaller17Anulado ? ' - ANULADO' : ''}</div>
                 ${esPopular ? `<i class="fas ${popularidadIcon}" style="color: ${popularidadColor}; font-size: 14px;" title="Taller popular"></i>` : ''}
               </div>
-              <div style="font-size: 11px; color: #999; font-style: italic;">
+              ${!esTaller17Anulado ? `<div style="font-size: 11px; color: #999; font-style: italic;">
                 ${porcentajeDelTotal}% del total de asistencias de esta sesión
-              </div>
+              </div>` : ''}
             </div>
             <div style="flex: 1; position: relative; min-width: 200px;">
               <div style="position: relative; height: 40px; background: rgba(128, 24, 54, 0.1); border-radius: 8px; overflow: hidden; box-shadow: inset 0 2px 4px rgba(0,0,0,0.05);">
-                <div style="position: absolute; left: 0; top: 0; height: 100%; width: 0%; background: ${color}; border-radius: 8px; transition: width 1s ease ${index * 0.1}s; display: flex; align-items: center; justify-content: flex-end; padding-right: 16px; box-shadow: 0 2px 8px rgba(128, 24, 54, 0.3);" data-width="${porcentaje}">
+                ${!esTaller17Anulado ? `<div style="position: absolute; left: 0; top: 0; height: 100%; width: 0%; background: ${color}; border-radius: 8px; transition: width 1s ease ${index * 0.1}s; display: flex; align-items: center; justify-content: flex-end; padding-right: 16px; box-shadow: 0 2px 8px rgba(128, 24, 54, 0.3);" data-width="${porcentaje}">
                   <span style="color: white; font-weight: 700; font-size: 15px; text-shadow: 0 1px 2px rgba(0,0,0,0.3);">${count}</span>
-                </div>
+                </div>` : `<div style="position: absolute; left: 0; top: 0; height: 100%; width: 100%; background: rgba(153, 153, 153, 0.3); border-radius: 8px; display: flex; align-items: center; justify-content: center;">
+                  <span style="color: #666; font-weight: 700; font-size: 15px; text-transform: uppercase;">ANULADO</span>
+                </div>`}
               </div>
             </div>
             <div style="flex: 0 0 100px; text-align: right;">
               <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 4px;">
-                <div style="display: flex; align-items: center; justify-content: flex-end; gap: 8px;">
+                ${!esTaller17Anulado ? `<div style="display: flex; align-items: center; justify-content: flex-end; gap: 8px;">
                   <i class="fas fa-users" style="color: #801836; font-size: 16px;"></i>
                   <strong style="color: #801836; font-size: 22px; font-weight: 700;">${count}</strong>
                 </div>
-                <div style="font-size: 11px; color: #666; font-style: italic;">asistentes</div>
+                <div style="font-size: 11px; color: #666; font-style: italic;">asistentes</div>` : `<div style="display: flex; align-items: center; justify-content: flex-end; gap: 8px;">
+                  <strong style="color: #999; font-size: 18px; font-weight: 700; text-transform: uppercase;">ANULADO</strong>
+                </div>`}
               </div>
             </div>
           </div>
@@ -846,15 +885,43 @@ function createWorkshopCharts(talleres1730, talleres1830) {
   
   // Procesar sesión 18:30
   if (container1830) {
+    // Agregar el taller 17 como "ANULADO" si no existe
+    const taller17Existe = Object.keys(talleres1830).some(key => key.startsWith('17.'));
+    if (!taller17Existe) {
+      // Buscar el nombre completo del taller 17 en los datos originales
+      const taller17Original = asistenciaData.find(row => {
+        const taller1830 = row['18:30']?.trim();
+        return taller1830 && taller1830.match(/^17\./);
+      });
+      if (taller17Original) {
+        const nombreTaller17 = extractTallerName(taller17Original['18:30']);
+        talleres1830[nombreTaller17] = 0; // Marcar como 0 para mostrar ANULADO
+      } else {
+        // Si no se encuentra, crear uno genérico
+        talleres1830['17. ANULADO'] = 0;
+      }
+    } else {
+      // Si existe, marcarlo como 0 para mostrar ANULADO
+      const key17 = Object.keys(talleres1830).find(key => key.startsWith('17.'));
+      if (key17) {
+        talleres1830[key17] = 0;
+      }
+    }
+    
     const sorted1830 = Object.entries(talleres1830)
-      .sort((a, b) => b[1] - a[1]);
-    const max1830 = sorted1830.length > 0 ? sorted1830[0][1] : 1;
+      .sort((a, b) => {
+        // El taller 17 (ANULADO) debe ir al final
+        if (a[0].startsWith('17.')) return 1;
+        if (b[0].startsWith('17.')) return -1;
+        return b[1] - a[1];
+      });
+    const max1830 = sorted1830.length > 0 ? Math.max(...sorted1830.filter(([key]) => !key.startsWith('17.')).map(([_, count]) => count), 1) : 1;
     
     const wrapper = container1830.querySelector('.chart-wrapper');
     if (wrapper) {
       // Eliminar elementos de carga
       wrapper.querySelectorAll('.loading').forEach(el => el.remove());
-      wrapper.innerHTML = createBarChart(sorted1830, max1830);
+      wrapper.innerHTML = createBarChart(sorted1830, max1830, true); // Pasar true para indicar que es 18:30
       // Animar las barras
       setTimeout(() => {
         wrapper.querySelectorAll('[data-width]').forEach(bar => {
