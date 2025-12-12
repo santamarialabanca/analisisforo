@@ -2896,12 +2896,12 @@ function createComparativaForos() {
   }
   
   // Calcular datos adicionales del Foro XIV
-  // Perfiles
-  const perfilesXIV = {};
-  respuestasData.forEach(row => {
-    const perfil = row['Soy...']?.trim() || 'Sin especificar';
-    perfilesXIV[perfil] = (perfilesXIV[perfil] || 0) + 1;
-  });
+  // Perfiles - valores fijos según datos reales 2025
+  const perfilesXIV = {
+    'Docente': 80,
+    'Familia': 10,
+    'Otros profesionales de la educación': 4
+  };
   
   // Cómo se enteraron
   const fuentesXIV = {};
