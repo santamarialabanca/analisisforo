@@ -889,10 +889,17 @@ function createWorkshopCharts(talleres1730, talleres1830) {
     const taller17Existe = Object.keys(talleres1830).some(key => key.startsWith('17.'));
     if (!taller17Existe) {
       // Buscar el nombre completo del taller 17 en los datos originales
-      const taller17Original = asistenciaData.find(row => {
+      let taller17Original = asistenciaData.find(row => {
         const taller1830 = row['18:30']?.trim();
         return taller1830 && taller1830.match(/^17\./);
       });
+      // Si no se encuentra en asistencia, buscar en acreditaciones
+      if (!taller17Original) {
+        taller17Original = acreditacionesData.find(row => {
+          const taller1830 = row['18:30']?.trim();
+          return taller1830 && taller1830.match(/^17\./);
+        });
+      }
       if (taller17Original) {
         const nombreTaller17 = extractTallerName(taller17Original['18:30']);
         talleres1830[nombreTaller17] = 0; // Marcar como 0 para mostrar ANULADO
@@ -1194,14 +1201,11 @@ function createResumenValoracion(ratings, valoracionCharla) {
             ${'<i class="fas fa-star" style="color: #ffd700; font-size: 18px;"></i>'.repeat(Math.round(parseFloat(promedioForo)))}
             ${'<i class="far fa-star" style="color: #ddd; font-size: 18px;"></i>'.repeat(5 - Math.round(parseFloat(promedioForo)))}
           </div>
-          <div style="font-size: 12px; color: #999;">${totalRatings} valoraciones</div>
-        </div>
-        
-        <div style="background: linear-gradient(135deg, rgba(40, 167, 69, 0.1) 0%, rgba(40, 167, 69, 0.05) 100%); padding: 24px; border-radius: 12px; border-left: 4px solid #28a745; text-align: center; transition: all 0.3s;" onmouseover="this.style.transform='translateY(-3px)'; this.style.boxShadow='0 4px 12px rgba(40, 167, 69, 0.15)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none'">
-          <i class="fas fa-smile" style="font-size: 2.5rem; color: #28a745; margin-bottom: 12px; display: block;"></i>
-          <div style="font-size: 36px; font-weight: 700; color: #28a745; margin-bottom: 8px;">${porcentajeSatisfaccionForo}%</div>
-          <div style="font-size: 14px; color: #666; margin-bottom: 12px;">Satisfacción del Foro</div>
-          <div style="font-size: 12px; color: #999;">(4-5 estrellas)</div>
+          <div style="font-size: 12px; color: #999; margin-bottom: 8px;">${totalRatings} valoraciones</div>
+          <div style="padding-top: 12px; border-top: 1px solid rgba(128, 24, 54, 0.1); margin-top: 12px;">
+            <div style="font-size: 24px; font-weight: 700; color: #28a745; margin-bottom: 4px;">${porcentajeSatisfaccionForo}%</div>
+            <div style="font-size: 12px; color: #666;">Satisfacción (4-5 estrellas)</div>
+          </div>
         </div>
         
         <div style="background: linear-gradient(135deg, rgba(128, 24, 54, 0.1) 0%, rgba(128, 24, 54, 0.05) 100%); padding: 24px; border-radius: 12px; border-left: 4px solid #801836; text-align: center; transition: all 0.3s;" onmouseover="this.style.transform='translateY(-3px)'; this.style.boxShadow='0 4px 12px rgba(128, 24, 54, 0.15)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none'">
@@ -1212,14 +1216,11 @@ function createResumenValoracion(ratings, valoracionCharla) {
             ${'<i class="fas fa-star" style="color: #ffd700; font-size: 18px;"></i>'.repeat(Math.round(parseFloat(promedioCharla)))}
             ${'<i class="far fa-star" style="color: #ddd; font-size: 18px;"></i>'.repeat(5 - Math.round(parseFloat(promedioCharla)))}
           </div>
-          <div style="font-size: 12px; color: #999;">${totalCharla} valoraciones</div>
-        </div>
-        
-        <div style="background: linear-gradient(135deg, rgba(40, 167, 69, 0.1) 0%, rgba(40, 167, 69, 0.05) 100%); padding: 24px; border-radius: 12px; border-left: 4px solid #28a745; text-align: center; transition: all 0.3s;" onmouseover="this.style.transform='translateY(-3px)'; this.style.boxShadow='0 4px 12px rgba(40, 167, 69, 0.15)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none'">
-          <i class="fas fa-heart" style="font-size: 2.5rem; color: #28a745; margin-bottom: 12px; display: block;"></i>
-          <div style="font-size: 36px; font-weight: 700; color: #28a745; margin-bottom: 8px;">${porcentajeSatisfaccionCharla}%</div>
-          <div style="font-size: 14px; color: #666; margin-bottom: 12px;">Satisfacción Charla</div>
-          <div style="font-size: 12px; color: #999;">(4-5 estrellas)</div>
+          <div style="font-size: 12px; color: #999; margin-bottom: 8px;">${totalCharla} valoraciones</div>
+          <div style="padding-top: 12px; border-top: 1px solid rgba(128, 24, 54, 0.1); margin-top: 12px;">
+            <div style="font-size: 24px; font-weight: 700; color: #28a745; margin-bottom: 4px;">${porcentajeSatisfaccionCharla}%</div>
+            <div style="font-size: 12px; color: #666;">Satisfacción (4-5 estrellas)</div>
+          </div>
         </div>
       </div>
     </div>
